@@ -65,6 +65,11 @@
     .teams thead th { color: var(--muted); font-weight: 600; padding-top: 10px; }
     .teams tbody tr { border-top: 1px solid var(--line); }
     .teams td:first-child { color: var(--ink); }
+    /* Primera columna (selección) fija al desplazar horizontalmente en móvil */
+    .teams th:first-child, .teams td:first-child {
+      position: sticky; left: 0; z-index: 1;
+      background: #fbf8f3; box-shadow: 1px 0 0 var(--line);
+    }
     .teams .num { color: var(--muted); }
     .teams .num.pts { color: var(--num); }
     .flag { width: 20px; height: 15px; object-fit: cover; border-radius: 2px; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08); vertical-align: -2px; margin-right: 8px; }
