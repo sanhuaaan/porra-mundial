@@ -5,7 +5,7 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: "0 * * * *" # cada hora en punto (UTC)
+    - cron: "7,27,47 * * * *" # cada 20 min (min. 7/27/47, UTC); evita el congestionado minuto 0
   workflow_dispatch:
 
 # Permisos que necesita el deploy a GitHub Pages.

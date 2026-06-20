@@ -61,7 +61,7 @@ const CONFIG: Config = {
     { name: "Sanju",  teams: ["Egipto", "Corea Sur", "Rep. Checa", "Senegal", "Uruguay", "Croacia", "Escocia", "Ghana"] },
     { name: "Iñaki",  teams: ["Francia", "Portugal", "Marruecos", "Ecuador", "Bosnia", "Corea Sur", "Cabo Verde"] },
     { name: "Samu",   teams: ["España", "Argentina", "Croacia", "Ecuador", "Corea Sur", "Nueva Zelanda", "Catar"] },
-    { name: "Unai",   teams: ["España", "Francia", "Argentina", "Corea Sur", "Egipto", "Jordania", "Nueva Zelanda"] },
+    { name: "Unai",   teams: ["España", "Francia", "Argentina", "Corea Sur", "Egipto", "Jordania", "Uzbekistán"] },
     { name: "Jon",    teams: ["España", "Argentina", "México", "Paraguay", "Corea Sur", "Sudáfrica", "Nueva Zelanda"] },
     { name: "Martín", teams: ["España", "Portugal", "Japón", "Uruguay", "Congo", "Nueva Zelanda", "Cabo Verde"] },
   ],

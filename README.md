@@ -99,9 +99,11 @@ Pasos (una sola vez):
    (o haz cualquier push). La web quedará en
    `https://TU_USUARIO.github.io/porra-mundial/`.
 
-A partir de ahí se actualiza sola cada hora. El cron de Actions usa UTC; el
-límite del plan gratuito de la API (10 req/min) va sobradísimo con 2 peticiones
-por hora.
+A partir de ahí se actualiza sola cada 20 min (cron `7,27,47 * * * *`, en los
+minutos 7/27/47 para esquivar la congestión del minuto 0; los cron de GitHub
+son «best effort» y a esa hora redonda se retrasan o saltan ciclos). El cron de
+Actions usa UTC; el límite del plan gratuito de la API (10 req/min) va
+sobradísimo con 2 peticiones cada 20 min.
 
 > **Nota:** con repo público la web y el código quedan públicos (los datos de la
 > porra no son sensibles). El token va en *secrets*, nunca en el repo.
