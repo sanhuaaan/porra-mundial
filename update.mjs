@@ -47,6 +47,17 @@ const NAMES = {
   "South Africa": "Sudáfrica", "New Zealand": "Nueva Zelanda", "Japan": "Japón",
   "Congo": "Congo", "Congo DR": "Congo", "DR Congo": "Congo",
   "Iran": "Irán", "IR Iran": "Irán",
+  // Resto de selecciones del torneo (rivales): así no aparecen en inglés en el
+  // desglose. Se incluyen alias habituales que puede devolver la API.
+  "Algeria": "Argelia", "Austria": "Austria", "Brazil": "Brasil",
+  "Canada": "Canadá", "Colombia": "Colombia",
+  "Curaçao": "Curazao", "Curacao": "Curazao",
+  "England": "Inglaterra", "Germany": "Alemania", "Haiti": "Haití",
+  "Iraq": "Irak", "Ivory Coast": "Costa de Marfil", "Côte d'Ivoire": "Costa de Marfil",
+  "Netherlands": "Países Bajos", "Norway": "Noruega", "Panama": "Panamá",
+  "Saudi Arabia": "Arabia Saudí", "Sweden": "Suecia", "Switzerland": "Suiza",
+  "Tunisia": "Túnez", "Turkey": "Turquía", "Türkiye": "Turquía",
+  "United States": "Estados Unidos", "USA": "Estados Unidos",
 };
 const tr = (n) => (n ? (NAMES[n] || n) : n);
 
