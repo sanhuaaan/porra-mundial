@@ -67,10 +67,12 @@ Mientras tocas el TypeScript, `npm run watch` recompila al guardar.
 ## Despliegue en GitHub Pages (recomendado)
 
 La web se publica en GitHub Pages y un workflow de GitHub Actions
-(`.github/workflows/deploy.yml`) la **reconstruye y redespliega cada hora con
-datos frescos**: compila el TypeScript, ejecuta `update.mjs` y publica el
-sitio. No hace falta servidor ni commitear `data.js` (lo regenera el CI en cada
-ejecución).
+(`.github/workflows/deploy.yml`) la **reconstruye y redespliega con datos
+frescos**: compila el TypeScript, ejecuta `update.mjs` y publica el sitio. No
+hace falta servidor ni commitear `data.js` (lo regenera el CI en cada
+ejecución). El workflow se dispara con cada `push`, manualmente
+(`workflow_dispatch`) y, sobre todo, desde un **cron externo cada 15 min** (ver
+más abajo).
 
 Pasos (una sola vez):
 
@@ -99,14 +101,55 @@ Pasos (una sola vez):
    (o haz cualquier push). La web quedará en
    `https://TU_USUARIO.github.io/porra-mundial/`.
 
-A partir de ahí se actualiza sola cada 20 min (cron `7,27,47 * * * *`, en los
-minutos 7/27/47 para esquivar la congestión del minuto 0; los cron de GitHub
-son «best effort» y a esa hora redonda se retrasan o saltan ciclos). El cron de
-Actions usa UTC; el límite del plan gratuito de la API (10 req/min) va
-sobradísimo con 2 peticiones cada 20 min.
-
 > **Nota:** con repo público la web y el código quedan públicos (los datos de la
 > porra no son sensibles). El token va en *secrets*, nunca en el repo.
+
+### Actualización periódica: cron EXTERNO (no el de GitHub)
+
+El scheduler interno de GitHub Actions (`on: schedule`) es «best effort»: a la
+hora redonda se retrasa o se salta ciclos enteros, así que se descartó. En su
+lugar, un **servicio de cron externo** (p. ej. [cron-job.org](https://cron-job.org))
+llama cada 15 min a la API de `workflow_dispatch`, de modo que el reloj lo pone
+el servicio externo y la cadencia es fiable.
+
+Montaje (una sola vez):
+
+1. **Token** — un *fine-grained PAT* con el mínimo privilegio:
+   Settings → Developer settings → Personal access tokens → Fine-grained tokens.
+   - *Repository access:* solo `porra-mundial`.
+   - *Permissions:* **Actions → Read and write**.
+   - *Expiration:* una fecha posterior al torneo (los fine-grained caducan).
+
+2. **La petición** que dispara el workflow:
+   - Método: `POST`
+   - URL: `https://api.github.com/repos/TU_USUARIO/porra-mundial/actions/workflows/deploy.yml/dispatches`
+   - Headers: `Accept: application/vnd.github+json`,
+     `Authorization: Bearer <TU_TOKEN>`, `X-GitHub-Api-Version: 2022-11-28`,
+     `Content-Type: application/json`
+   - Body: `{"ref":"main"}`
+   - Respuesta correcta: **`204 No Content`**.
+
+   Prueba rápida con `curl`:
+
+   ```bash
+   curl -i -X POST \
+     -H "Accept: application/vnd.github+json" \
+     -H "Authorization: Bearer <TU_TOKEN>" \
+     -H "X-GitHub-Api-Version: 2022-11-28" \
+     https://api.github.com/repos/TU_USUARIO/porra-mundial/actions/workflows/deploy.yml/dispatches \
+     -d '{"ref":"main"}'
+   ```
+
+3. **cron-job.org** — *Create cronjob* con esa URL, *schedule* cada 15 min
+   (minutos `0,15,30,45`), método `POST`, los headers de arriba y el body
+   `{"ref":"main"}`. Cualquier `2xx` (el `204`) cuenta como éxito.
+
+El límite del plan gratuito de la API de football-data (10 req/min) va
+sobradísimo: `update.mjs` hace 2 peticiones por ejecución → ~8 req/h.
+
+> **Seguridad:** el token da escritura sobre Actions **solo** de este repo.
+> Vive únicamente en el servicio de cron; nunca se commitea y conviene ponerle
+> caducidad.
 
 ## Alternativa: VPS / servidor propio con cron
 
