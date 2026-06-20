@@ -8,6 +8,16 @@ interface Window {
   POOL_DATA?: Data;
 }
 
+// Una línea del desglose: de dónde sale cada trozo de puntuación de una
+// selección. Se genera en compute() (misma fuente que los totales), así que la
+// suma de points de todas las líneas SIEMPRE cuadra con el total.
+interface BreakdownLine {
+  section: "Liguilla" | "Bonus de grupo" | "Eliminatorias";
+  text: string;          // p. ej. "3-0 vs Croacia"
+  note?: string;         // aclaración en gris, p. ej. "victoria +3, golaveraje +3"
+  points: number;        // puntos que aporta esta línea
+}
+
 interface TeamBreakdown {
   team: string;
   played: number;
@@ -22,6 +32,7 @@ interface TeamBreakdown {
   knockoutPoints: number;  // bonos por superar cada ronda (+ subcampeón / tercero)
   knockoutGD: number;      // golaveraje a favor en eliminatorias ganadas
   total: number;
+  lines: BreakdownLine[];  // desglose línea a línea (para el detalle expandible)
 }
 
 function newTeam(team: string): TeamBreakdown {
@@ -36,6 +47,7 @@ function newTeam(team: string): TeamBreakdown {
     knockoutPoints: 0,
     knockoutGD: 0,
     total: 0,
+    lines: [],
   };
 }
 
@@ -57,15 +69,25 @@ function compute(data: Data): Map<string, TeamBreakdown> {
     for (const side of ["home", "away"] as const) {
       const team = side === "home" ? m.home : m.away;
       if (!team) continue;
+      const opp = side === "home" ? m.away : m.home;
       const gf = side === "home" ? m.homeGoals : m.awayGoals;
       const ga = side === "home" ? m.awayGoals : m.homeGoals;
       const t = get(team);
       t.played++;
-      if (gf > ga) { t.won++; t.groupPoints += P.group.win; }
-      else if (gf === ga) { t.drawn++; t.groupPoints += P.group.draw; }
-      else { t.lost++; t.groupPoints += P.group.loss; }
-      t.groupGD += gf - ga;
-      t.groupPoints += gf - ga; // golaveraje del partido
+      let wdl: number;
+      let res: string;
+      if (gf > ga) { t.won++; wdl = P.group.win; res = "victoria"; }
+      else if (gf === ga) { t.drawn++; wdl = P.group.draw; res = "empate"; }
+      else { t.lost++; wdl = P.group.loss; res = "derrota"; }
+      const gd = gf - ga;
+      t.groupPoints += wdl + gd; // resultado + golaveraje del partido
+      t.groupGD += gd;
+      t.lines.push({
+        section: "Liguilla",
+        text: `${gf}-${ga} vs ${opp || "—"}`,
+        note: `${res} ${signed(wdl)}, golaveraje ${signed(gd)}`,
+        points: wdl + gd,
+      });
     }
   }
 
@@ -76,7 +98,15 @@ function compute(data: Data): Map<string, TeamBreakdown> {
     if (m.home) qualified.add(m.home);
     if (m.away) qualified.add(m.away);
   }
-  for (const team of qualified) get(team).bAdvance += P.groupBonus.advance;
+  for (const team of qualified) {
+    const t = get(team);
+    t.bAdvance += P.groupBonus.advance;
+    t.lines.push({
+      section: "Bonus de grupo",
+      text: "Clasifica para eliminatorias",
+      points: P.groupBonus.advance,
+    });
+  }
 
   // 3) Bonus de grupo (sólo cuando el grupo está completo):
   //    +6 al más goleador, +6 al menos goleado (repartidos en caso de empate).
@@ -103,11 +133,31 @@ function compute(data: Data): Map<string, TeamBreakdown> {
 
     const maxGF = Math.max(...teams.map((e) => gf.get(e) || 0));
     const topScorers = teams.filter((e) => (gf.get(e) || 0) === maxGF);
-    for (const e of topScorers) get(e).bTopScorer += P.groupBonus.topScorer / topScorers.length;
+    const topPts = P.groupBonus.topScorer / topScorers.length;
+    for (const e of topScorers) {
+      const t = get(e);
+      t.bTopScorer += topPts;
+      t.lines.push({
+        section: "Bonus de grupo",
+        text: "Máximo goleador del grupo",
+        note: topScorers.length > 1 ? `compartido entre ${topScorers.length}` : undefined,
+        points: topPts,
+      });
+    }
 
     const minGA = Math.min(...teams.map((e) => ga.get(e) || 0));
     const leastConcededTeams = teams.filter((e) => (ga.get(e) || 0) === minGA);
-    for (const e of leastConcededTeams) get(e).bLeastConceded += P.groupBonus.leastConceded / leastConcededTeams.length;
+    const leastPts = P.groupBonus.leastConceded / leastConcededTeams.length;
+    for (const e of leastConcededTeams) {
+      const t = get(e);
+      t.bLeastConceded += leastPts;
+      t.lines.push({
+        section: "Bonus de grupo",
+        text: "Menos goleado del grupo",
+        note: leastConcededTeams.length > 1 ? `compartido entre ${leastConcededTeams.length}` : undefined,
+        points: leastPts,
+      });
+    }
   }
 
   // 4) FASE 2 — Eliminatorias: bono por ronda + golaveraje a favor (penaltis = 0).
@@ -119,6 +169,15 @@ function compute(data: Data): Map<string, TeamBreakdown> {
     semi_finals: P.knockout.semiFinals,
     third_place: P.knockout.thirdPlace,
     final: P.knockout.final,
+  };
+  const phaseLabel: Record<Phase, string> = {
+    groups: "",
+    round_of_32: "Dieciseisavos",
+    round_of_16: "Octavos",
+    quarter_finals: "Cuartos",
+    semi_finals: "Semifinal",
+    third_place: "Tercer puesto",
+    final: "Final (campeón)",
   };
   for (const m of data.matches) {
     if (m.phase === "groups") continue;
@@ -141,7 +200,28 @@ function compute(data: Data): Map<string, TeamBreakdown> {
     const w = get(winner);
     w.knockoutPoints += bonus[m.phase];
     w.knockoutGD += gd;
-    if (m.phase === "final") get(loser).knockoutPoints += P.knockout.runnerUp;
+
+    const wgf = winner === m.home ? m.homeGoals : m.awayGoals;
+    const wga = winner === m.home ? m.awayGoals : m.homeGoals;
+    const penalties = m.homeGoals === m.awayGoals;
+    const gdNote = penalties ? "penaltis (golaveraje 0)" : `golaveraje ${signed(gd)}`;
+    w.lines.push({
+      section: "Eliminatorias",
+      text: `${phaseLabel[m.phase]}: ${wgf}-${wga} vs ${loser || "—"}${penalties ? " (pen.)" : ""}`,
+      note: `bono ${signed(bonus[m.phase])}, ${gdNote}`,
+      points: bonus[m.phase] + gd,
+    });
+
+    if (m.phase === "final") {
+      const l = get(loser);
+      l.knockoutPoints += P.knockout.runnerUp;
+      l.lines.push({
+        section: "Eliminatorias",
+        text: "Subcampeón",
+        note: `final perdida vs ${winner}`,
+        points: P.knockout.runnerUp,
+      });
+    }
   }
 
   for (const t of table.values()) {
@@ -161,6 +241,11 @@ function participantPoints(participant: Participant, table: Map<string, TeamBrea
 
 function fmt(n: number): string {
   return Number.isInteger(n) ? String(n) : n.toFixed(1);
+}
+
+// Igual que fmt pero con signo explícito (+4, 0, -2) para el desglose.
+function signed(n: number): string {
+  return (n > 0 ? "+" : "") + fmt(n);
 }
 
 function formatDate(iso: string): string {
@@ -230,6 +315,17 @@ function render(): void {
       row.classList.toggle("open", open);
     });
   });
+
+  // Segundo nivel: expandir / contraer el desglose de puntos de cada selección.
+  app.querySelectorAll<HTMLTableRowElement>("tr.team-row.has-detail").forEach((row) => {
+    row.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const detail = row.nextElementSibling;
+      if (!detail) return;
+      const open = detail.classList.toggle("open");
+      row.classList.toggle("open", open);
+    });
+  });
 }
 
 function teamsTable(p: Participant, table: Map<string, TeamBreakdown>): string {
@@ -250,11 +346,40 @@ function teamsTable(p: Participant, table: Map<string, TeamBreakdown>): string {
       ? `<img class="flag" src="https://flagcdn.com/w40/${code}.png" ` +
         `srcset="https://flagcdn.com/w80/${code}.png 2x" alt="" width="20" height="15" loading="lazy">`
       : "";
+    const hasDetail = !!(t && t.lines.length);
+    const caret = hasDetail ? '<span class="t-caret">›</span>' : '<span class="t-caret-empty"></span>';
     html +=
-      `<tr><td>${flag}${team}</td><td class="num">${fmt(league)}</td><td class="num">${fmt(bonus)}</td>` +
+      `<tr class="team-row${hasDetail ? " has-detail" : ""}"><td>${caret}${flag}${team}</td>` +
+      `<td class="num">${fmt(league)}</td><td class="num">${fmt(bonus)}</td>` +
       `<td class="num">${fmt(ko)}</td><td class="num pts">${fmt(tot)}</td></tr>`;
+    if (hasDetail) {
+      html +=
+        '<tr class="team-detail"><td colspan="5">' +
+        '<div class="t-accordion"><div class="t-accordion-inner">' +
+        breakdown(t!) +
+        "</div></div></td></tr>";
+    }
   }
   return html + "</tbody></table></div>";
+}
+
+// Desglose línea a línea de una selección, agrupado por sección, para el detalle
+// expandible. Las líneas ya vienen calculadas en compute().
+function breakdown(t: TeamBreakdown): string {
+  const sections: BreakdownLine["section"][] = ["Liguilla", "Bonus de grupo", "Eliminatorias"];
+  let html = '<div class="bd">';
+  for (const sec of sections) {
+    const lines = t.lines.filter((l) => l.section === sec);
+    if (!lines.length) continue;
+    html += `<div class="bd-sec">${sec}</div>`;
+    for (const l of lines) {
+      const note = l.note ? `<span class="bd-note">${l.note}</span>` : "";
+      html +=
+        `<div class="bd-line"><span class="bd-text">${l.text}${note}</span>` +
+        `<span class="bd-pts">${signed(l.points)}</span></div>`;
+    }
+  }
+  return html + "</div>";
 }
 
 document.addEventListener("DOMContentLoaded", render);

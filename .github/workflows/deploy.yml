@@ -53,6 +53,13 @@ jobs:
           mkdir -p _site/dist
           cp index.html data.js _site/
           cp dist/*.js _site/dist/
+          # Cache-busting: añade ?v=<run id> a cada <script src="*.js">. El id
+          # cambia en CADA ejecución del workflow (también las del cron externo),
+          # así que el navegador nunca sirve config.js/data.js/app.js cacheados de
+          # un despliegue anterior. (index.html sí puede cachearse ~10 min: es
+          # quien lleva las URLs versionadas, y de él no controlamos cabeceras en
+          # Pages; en la práctica importa poco para visitas ocasionales.)
+          sed -i "s#\(src=\"[^\"]*\.js\)\"#\1?v=${GITHUB_RUN_ID}\"#g" _site/index.html
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
