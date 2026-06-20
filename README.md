@@ -1,0 +1,154 @@
+# Porra Mundial 2026
+
+Web estática para llevar la clasificación de la porra del Mundial. Cada
+participante elige sus selecciones y la web calcula los puntos según las reglas
+de la porra a partir de los resultados reales, que se descargan de
+[football-data.org](https://www.football-data.org).
+
+No hay backend: la web es HTML + JavaScript (compilado de TypeScript) y lee los
+resultados de un fichero `datos.js`. Ese fichero lo reescribe el script
+`actualizar.mjs`, que es la única pieza que habla con la API (y la única que
+conoce tu clave). En producción se lanza con un cron cada hora.
+
+```
+navegador  ─►  index.html + dist/*.js + datos.js        (estático, sin clave)
+cron (1h)  ─►  node actualizar.mjs ─► football-data.org  (reescribe datos.js)
+```
+
+## Estructura
+
+| Fichero            | Qué es                                                        |
+|--------------------|---------------------------------------------------------------|
+| `index.html`       | La página. Carga `config.js`, `datos.js` y `porra.js`.        |
+| `src/config.ts`    | **Participantes, sus selecciones y las reglas de puntuación.** |
+| `src/porra.ts`     | Motor de puntuación + render de la tabla.                     |
+| `datos.js`         | Resultados (lo genera `actualizar.mjs`; se incluye un ejemplo).|
+| `actualizar.mjs`   | Descarga los resultados y reescribe `datos.js`.               |
+| `dist/`            | JavaScript compilado que carga el navegador.                  |
+| `test/smoke.mjs`   | Prueba del motor de puntuación.                               |
+
+## Puesta en marcha
+
+```bash
+npm install      # instala TypeScript
+npm run build    # compila src/*.ts -> dist/*.js
+```
+
+Abre `index.html` en el navegador (doble clic vale) y verás la clasificación
+con los **datos de ejemplo**.
+
+Mientras tocas el TypeScript, `npm run watch` recompila al guardar.
+
+## Datos reales (football-data.org)
+
+1. Regístrate gratis en https://www.football-data.org/client/register y copia tu
+   token.
+2. Genera `datos.js` con los resultados reales:
+
+   ```bash
+   FOOTBALL_DATA_TOKEN=tu_clave node actualizar.mjs
+   ```
+
+   Por defecto usa la competición `WC` (Mundial). Si tu plan usa otro código,
+   pásalo con `FD_COMPETICION`:
+
+   ```bash
+   FOOTBALL_DATA_TOKEN=tu_clave FD_COMPETICION=WC node actualizar.mjs
+   ```
+
+3. Recarga la web.
+
+> **Nota:** el plan gratuito y los nombres exactos de las fases del torneo de 48
+> equipos conviene verificarlos con tu clave la primera vez. Los nombres de
+> selección (inglés → español) y las fases se mapean en `actualizar.mjs`
+> (tablas `NOMBRES` y `FASES`); si alguna selección apareciera con su nombre en
+> inglés o una eliminatoria no puntuara, basta con añadir la entrada que falte.
+
+## Despliegue en GitHub Pages (recomendado)
+
+La web se publica en GitHub Pages y un workflow de GitHub Actions
+(`.github/workflows/deploy.yml`) la **reconstruye y redespliega cada hora con
+datos frescos**: compila el TypeScript, ejecuta `actualizar.mjs` y publica el
+sitio. No hace falta servidor ni commitear `datos.js` (lo regenera el CI en cada
+ejecución).
+
+Pasos (una sola vez):
+
+1. **Crea el repositorio y súbelo** (sustituye `TU_USUARIO`):
+
+   ```bash
+   git init && git add -A && git commit -m "Porra Mundial 2026"
+   git branch -M main
+   gh repo create porra-mundial --public --source=. --remote=origin --push
+   # o, sin gh: crea el repo en github.com y luego
+   # git remote add origin https://github.com/TU_USUARIO/porra-mundial.git && git push -u origin main
+   ```
+
+2. **Guarda el token como secret** (no se commitea nunca):
+
+   ```bash
+   gh secret set FOOTBALL_DATA_TOKEN --body "tu_clave"
+   # o en github.com: Settings → Secrets and variables → Actions → New repository secret
+   #   Name: FOOTBALL_DATA_TOKEN   Value: tu_clave
+   ```
+
+3. **Activa Pages con origen «GitHub Actions»**: en github.com, Settings →
+   Pages → Build and deployment → Source: **GitHub Actions**.
+
+4. Lanza el primer despliegue: Actions → «Desplegar porra» → *Run workflow*
+   (o haz cualquier push). La web quedará en
+   `https://TU_USUARIO.github.io/porra-mundial/`.
+
+A partir de ahí se actualiza sola cada hora. El cron de Actions usa UTC; el
+límite del plan gratuito de la API (10 req/min) va sobradísimo con 2 peticiones
+por hora.
+
+> **Nota:** con repo público la web y el código quedan públicos (los datos de la
+> porra no son sensibles). El token va en *secrets*, nunca en el repo.
+
+## Alternativa: VPS / servidor propio con cron
+
+Sirve `index.html`, `dist/` y `datos.js` con cualquier servidor estático (Nginx,
+Apache…) y añade al `crontab -e`:
+
+```cron
+0 * * * * cd /ruta/a/porra-mundial && FOOTBALL_DATA_TOKEN=tu_clave /usr/bin/node actualizar.mjs >> actualizar.log 2>&1
+```
+
+Cada hora reescribe `datos.js` y la web sirve siempre el último resultado.
+
+## Cambiar participantes o selecciones
+
+Edita `src/config.ts` (lista `participantes`) y vuelve a `npm run build`. Los
+nombres de selección deben coincidir con los nombres canónicos en español de la
+tabla `NOMBRES` de `actualizar.mjs`.
+
+## Reglas de puntuación implementadas
+
+**Fase 1 — Liguilla** (por cada partido de cada selección):
+- 3 / 1 / 0 por victoria / empate / derrota.
+- **+** el golaveraje del partido (ganar 3-0 → +3; perder 2-4 → −2; empatar 3-3 → 0).
+- En el grupo, una vez disputado entero: **+3** a cada equipo que pasa de ronda,
+  **+6** al más goleador del grupo y **+6** al menos goleado (repartidos en caso
+  de empate).
+
+**Fase 2 — Eliminatorias** (ya no se resta): al que pasa cada ronda
+**+6** dieciseisavos, **+9** octavos, **+12** cuartos, **+15** semis,
+**+18** campeón, **+6** subcampeón, **+3** tercero, **+** el golaveraje a favor de
+cada eliminatoria ganada (penaltis = 0; prórroga cuenta el resultado final).
+
+La puntuación de cada participante es la suma de los puntos de todas sus
+selecciones.
+
+## Tests y utilidades
+
+```bash
+npm run build         # imprescindible antes de los tests (usan dist/)
+npm test              # prueba del motor con un escenario fijo
+npm run verificar     # comprueba que las 27 selecciones elegidas existen en datos.js
+npm run clasificacion # imprime la clasificación actual en la terminal
+```
+
+Si tras una actualización `npm run verificar` se queja de alguna selección, es
+que la API la devuelve con un nombre nuevo: añade la equivalencia a la tabla
+`NOMBRES` de `actualizar.mjs`.

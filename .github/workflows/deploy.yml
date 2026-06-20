@@ -1,0 +1,62 @@
+name: Desplegar porra
+
+# Se ejecuta al hacer push a main, cada hora (cron) y manualmente.
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 * * * *" # cada hora en punto (UTC)
+  workflow_dispatch:
+
+# Permisos que necesita el deploy a GitHub Pages.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Evita despliegues solapados; deja terminar el último.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Compilar TypeScript
+        run: npm run build
+
+      - name: Descargar resultados (football-data.org)
+        run: node actualizar.mjs
+        env:
+          FOOTBALL_DATA_TOKEN: ${{ secrets.FOOTBALL_DATA_TOKEN }}
+
+      - name: Comprobar selecciones elegidas
+        run: node test/verificar-equipos.mjs
+
+      - name: Preparar sitio estático
+        run: |
+          mkdir -p _site/dist
+          cp index.html datos.js _site/
+          cp dist/*.js _site/dist/
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deploy
+        uses: actions/deploy-pages@v4
