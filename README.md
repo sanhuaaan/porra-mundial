@@ -6,24 +6,24 @@ de la porra a partir de los resultados reales, que se descargan de
 [football-data.org](https://www.football-data.org).
 
 No hay backend: la web es HTML + JavaScript (compilado de TypeScript) y lee los
-resultados de un fichero `datos.js`. Ese fichero lo reescribe el script
-`actualizar.mjs`, que es la única pieza que habla con la API (y la única que
+resultados de un fichero `data.js`. Ese fichero lo reescribe el script
+`update.mjs`, que es la única pieza que habla con la API (y la única que
 conoce tu clave). En producción se lanza con un cron cada hora.
 
 ```
-navegador  ─►  index.html + dist/*.js + datos.js        (estático, sin clave)
-cron (1h)  ─►  node actualizar.mjs ─► football-data.org  (reescribe datos.js)
+navegador  ─►  index.html + dist/*.js + data.js        (estático, sin clave)
+cron (1h)  ─►  node update.mjs ─► football-data.org  (reescribe data.js)
 ```
 
 ## Estructura
 
 | Fichero            | Qué es                                                        |
 |--------------------|---------------------------------------------------------------|
-| `index.html`       | La página. Carga `config.js`, `datos.js` y `porra.js`.        |
+| `index.html`       | La página. Carga `config.js`, `data.js` y `app.js`.          |
 | `src/config.ts`    | **Participantes, sus selecciones y las reglas de puntuación.** |
-| `src/porra.ts`     | Motor de puntuación + render de la tabla.                     |
-| `datos.js`         | Resultados (lo genera `actualizar.mjs`; se incluye un ejemplo).|
-| `actualizar.mjs`   | Descarga los resultados y reescribe `datos.js`.               |
+| `src/app.ts`       | Motor de puntuación + render de la tabla.                     |
+| `data.js`         | Resultados (lo genera `update.mjs`; se incluye un ejemplo).|
+| `update.mjs`   | Descarga los resultados y reescribe `data.js`.               |
 | `dist/`            | JavaScript compilado que carga el navegador.                  |
 | `test/smoke.mjs`   | Prueba del motor de puntuación.                               |
 
@@ -43,33 +43,33 @@ Mientras tocas el TypeScript, `npm run watch` recompila al guardar.
 
 1. Regístrate gratis en https://www.football-data.org/client/register y copia tu
    token.
-2. Genera `datos.js` con los resultados reales:
+2. Genera `data.js` con los resultados reales:
 
    ```bash
-   FOOTBALL_DATA_TOKEN=tu_clave node actualizar.mjs
+   FOOTBALL_DATA_TOKEN=tu_clave node update.mjs
    ```
 
    Por defecto usa la competición `WC` (Mundial). Si tu plan usa otro código,
-   pásalo con `FD_COMPETICION`:
+   pásalo con `FD_COMPETITION`:
 
    ```bash
-   FOOTBALL_DATA_TOKEN=tu_clave FD_COMPETICION=WC node actualizar.mjs
+   FOOTBALL_DATA_TOKEN=tu_clave FD_COMPETITION=WC node update.mjs
    ```
 
 3. Recarga la web.
 
 > **Nota:** el plan gratuito y los nombres exactos de las fases del torneo de 48
 > equipos conviene verificarlos con tu clave la primera vez. Los nombres de
-> selección (inglés → español) y las fases se mapean en `actualizar.mjs`
-> (tablas `NOMBRES` y `FASES`); si alguna selección apareciera con su nombre en
+> selección (inglés → español) y las fases se mapean en `update.mjs`
+> (tablas `NAMES` y `PHASES`); si alguna selección apareciera con su nombre en
 > inglés o una eliminatoria no puntuara, basta con añadir la entrada que falte.
 
 ## Despliegue en GitHub Pages (recomendado)
 
 La web se publica en GitHub Pages y un workflow de GitHub Actions
 (`.github/workflows/deploy.yml`) la **reconstruye y redespliega cada hora con
-datos frescos**: compila el TypeScript, ejecuta `actualizar.mjs` y publica el
-sitio. No hace falta servidor ni commitear `datos.js` (lo regenera el CI en cada
+datos frescos**: compila el TypeScript, ejecuta `update.mjs` y publica el
+sitio. No hace falta servidor ni commitear `data.js` (lo regenera el CI en cada
 ejecución).
 
 Pasos (una sola vez):
@@ -108,20 +108,20 @@ por hora.
 
 ## Alternativa: VPS / servidor propio con cron
 
-Sirve `index.html`, `dist/` y `datos.js` con cualquier servidor estático (Nginx,
+Sirve `index.html`, `dist/` y `data.js` con cualquier servidor estático (Nginx,
 Apache…) y añade al `crontab -e`:
 
 ```cron
-0 * * * * cd /ruta/a/porra-mundial && FOOTBALL_DATA_TOKEN=tu_clave /usr/bin/node actualizar.mjs >> actualizar.log 2>&1
+0 * * * * cd /ruta/a/porra-mundial && FOOTBALL_DATA_TOKEN=tu_clave /usr/bin/node update.mjs >> update.log 2>&1
 ```
 
-Cada hora reescribe `datos.js` y la web sirve siempre el último resultado.
+Cada hora reescribe `data.js` y la web sirve siempre el último resultado.
 
 ## Cambiar participantes o selecciones
 
 Edita `src/config.ts` (lista `participantes`) y vuelve a `npm run build`. Los
 nombres de selección deben coincidir con los nombres canónicos en español de la
-tabla `NOMBRES` de `actualizar.mjs`.
+tabla `NAMES` de `update.mjs`.
 
 ## Reglas de puntuación implementadas
 
@@ -143,12 +143,12 @@ selecciones.
 ## Tests y utilidades
 
 ```bash
-npm run build         # imprescindible antes de los tests (usan dist/)
-npm test              # prueba del motor con un escenario fijo
-npm run verificar     # comprueba que las 27 selecciones elegidas existen en datos.js
-npm run clasificacion # imprime la clasificación actual en la terminal
+npm run build     # imprescindible antes de los tests (usan dist/)
+npm test          # prueba del motor con un escenario fijo
+npm run verify    # comprueba que las 27 selecciones elegidas existen en data.js
+npm run standings # imprime la clasificación actual en la terminal
 ```
 
-Si tras una actualización `npm run verificar` se queja de alguna selección, es
-que la API la devuelve con un nombre nuevo: añade la equivalencia a la tabla
-`NOMBRES` de `actualizar.mjs`.
+Si tras una actualización `npm run verify` se queja de alguna selección, es que
+la API la devuelve con un nombre nuevo: añade la equivalencia a la tabla `NAMES`
+de `update.mjs`.

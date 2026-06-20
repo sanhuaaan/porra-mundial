@@ -7,10 +7,10 @@
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
-    "actualizar": "node actualizar.mjs",
+    "update": "node update.mjs",
     "test": "node test/smoke.mjs",
-    "verificar": "node test/verificar-equipos.mjs",
-    "clasificacion": "node test/clasificacion.mjs"
+    "verify": "node test/verify-teams.mjs",
+    "standings": "node test/standings.mjs"
   },
   "devDependencies": {
     "typescript": "^5.6.0"

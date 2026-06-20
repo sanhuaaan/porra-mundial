@@ -40,35 +40,35 @@
     .ranking .caret-col { width: 28px; }
     .ranking .pos { width: 36px; }
 
-    .ranking tr.fila { cursor: pointer; border-top: 1px solid var(--line); transition: background 0.12s; }
-    .ranking tr.fila:hover { background: #f7f3ec; }
-    .ranking tr.fila > td { padding-top: 13px; padding-bottom: 13px; }
-    .ranking tr.fila .caret { color: var(--muted); transition: transform 0.15s; transform-origin: center; }
-    .ranking tr.fila.abierta { background: #f7f3ec; }
-    .ranking tr.fila.abierta .caret { transform: rotate(90deg); color: var(--accent); }
-    .ranking tr.fila .pos { color: var(--muted); }
-    .ranking tr.fila .nombre { font-weight: 600; }
-    .ranking tbody tr.fila:first-child .pos { color: var(--accent); }
+    .ranking tr.row { cursor: pointer; border-top: 1px solid var(--line); transition: background 0.12s; }
+    .ranking tr.row:hover { background: #f7f3ec; }
+    .ranking tr.row > td { padding-top: 13px; padding-bottom: 13px; }
+    .ranking tr.row .caret { color: var(--muted); transition: transform 0.15s; transform-origin: center; }
+    .ranking tr.row.open { background: #f7f3ec; }
+    .ranking tr.row.open .caret { transform: rotate(90deg); color: var(--accent); }
+    .ranking tr.row .pos { color: var(--muted); }
+    .ranking tr.row .name { font-weight: 600; }
+    .ranking tbody tr.row:first-child .pos { color: var(--accent); }
     .pts { color: var(--num); font-weight: 600; }
 
     /* Fila de detalle expandible dentro de cada participante.
        La altura se anima con el truco grid-template-rows 0fr -> 1fr. */
-    .ranking tr.detalle > td { padding: 0; background: #fbf8f3; }
-    .ranking tr.detalle > td:first-child { background: var(--card); }
-    .acordeon { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.28s ease; }
-    .ranking tr.detalle.abierta .acordeon { grid-template-rows: 1fr; }
-    .acordeon-inner { overflow: hidden; opacity: 0; transition: opacity 0.28s ease; }
-    .ranking tr.detalle.abierta .acordeon-inner { opacity: 1; }
-    .equipos { background: transparent; }
-    .equipos th, .equipos td { padding: 7px 12px; font-size: 13.5px; border: none; }
-    .equipos thead th { color: var(--muted); font-weight: 600; padding-top: 10px; }
-    .equipos tbody tr { border-top: 1px solid var(--line); }
-    .equipos td:first-child { color: var(--ink); }
-    .equipos .num { color: var(--muted); }
-    .equipos .num.pts { color: var(--num); }
-    .bandera { width: 20px; height: 15px; object-fit: cover; border-radius: 2px; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08); vertical-align: -2px; margin-right: 8px; }
+    .ranking tr.detail > td { padding: 0; background: #fbf8f3; }
+    .ranking tr.detail > td:first-child { background: var(--card); }
+    .accordion { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.28s ease; }
+    .ranking tr.detail.open .accordion { grid-template-rows: 1fr; }
+    .accordion-inner { overflow: hidden; opacity: 0; transition: opacity 0.28s ease; }
+    .ranking tr.detail.open .accordion-inner { opacity: 1; }
+    .teams { background: transparent; }
+    .teams th, .teams td { padding: 7px 12px; font-size: 13.5px; border: none; }
+    .teams thead th { color: var(--muted); font-weight: 600; padding-top: 10px; }
+    .teams tbody tr { border-top: 1px solid var(--line); }
+    .teams td:first-child { color: var(--ink); }
+    .teams .num { color: var(--muted); }
+    .teams .num.pts { color: var(--num); }
+    .flag { width: 20px; height: 15px; object-fit: cover; border-radius: 2px; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08); vertical-align: -2px; margin-right: 8px; }
 
-    .aviso { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 24px; color: var(--muted); }
+    .notice { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 24px; color: var(--muted); }
     code { background: #f1ece4; padding: 1px 6px; border-radius: 5px; font-size: 0.9em; }
 
     @media (max-width: 600px) {
@@ -77,10 +77,10 @@
       th, td { padding: 9px 8px; }
       .ranking .caret-col { width: 20px; }
       .ranking .pos { width: 22px; }
-      .ranking tr.fila > td { padding-top: 12px; padding-bottom: 12px; }
-      .equipos th, .equipos td { padding: 6px 7px; font-size: 12px; }
-      .equipos thead th { padding-top: 9px; }
-      .bandera { width: 18px; height: 13px; margin-right: 6px; }
+      .ranking tr.row > td { padding-top: 12px; padding-bottom: 12px; }
+      .teams th, .teams td { padding: 6px 7px; font-size: 12px; }
+      .teams thead th { padding-top: 9px; }
+      .flag { width: 18px; height: 13px; margin-right: 6px; }
     }
   </style>
 </head>
@@ -88,14 +88,14 @@
   <div class="wrap">
     <header>
       <h1>Porra Mundial 2026</h1>
-      <div class="sub">Actualizado: <span id="actualizado">—</span></div>
+      <div class="sub">Actualizado: <span id="updated">—</span></div>
     </header>
     <main id="app"></main>
   </div>
 
-  <!-- Orden importante: config (reglas) → datos (resultados) → porra (motor + render) -->
+  <!-- Orden importante: config (reglas) → data (resultados) → app (motor + render) -->
   <script src="dist/config.js"></script>
-  <script src="datos.js"></script>
-  <script src="dist/porra.js"></script>
+  <script src="data.js"></script>
+  <script src="dist/app.js"></script>
 </body>
 </html>
