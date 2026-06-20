@@ -1,6 +1,6 @@
 // Generado por update.mjs — no editar a mano.
 window.POOL_DATA = {
-  "updated": "2026-06-20T11:27:52.112Z",
+  "updated": "2026-06-20T11:30:45.394Z",
   "groups": {
     "A": [
       "México",
@@ -1074,5 +1074,6 @@ window.POOL_DATA = {
       "awayGoals": null,
       "status": "SCHEDULED"
     }
-  ]
+  ],
+  "unknownStages": []
 };

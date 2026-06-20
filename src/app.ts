@@ -191,7 +191,19 @@ function render(): void {
     .map((p) => ({ p, pts: participantPoints(p, table) }))
     .sort((a, b) => b.pts - a.pts);
 
-  let html =
+  let html = "";
+
+  // Banner si hay etapas de eliminatoria que la app no reconoce: esos partidos
+  // todavía no puntúan (hay que añadir su etiqueta a PHASES en update.mjs).
+  const unknown = data.unknownStages ?? [];
+  if (unknown.length) {
+    html +=
+      '<div class="warning">⚠ Hay partidos de eliminatoria con una fase no reconocida ' +
+      `(${unknown.join(", ")}), así que todavía <strong>no puntúan</strong>. ` +
+      "Hay que añadir esa fase a la app.</div>";
+  }
+
+  html +=
     '<table class="ranking"><thead><tr><th class="caret-col"></th><th class="pos">#</th>' +
     '<th>Participante</th><th class="num">Puntos</th></tr></thead><tbody>';
 

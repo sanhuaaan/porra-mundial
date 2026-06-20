@@ -128,6 +128,7 @@ for (const m of ms.matches || []) {
 // Aviso si la API trajo etapas de eliminatoria que no sabemos mapear (p. ej. el
 // nombre de la ronda de 32 del formato de 48 equipos). Esos partidos no puntúan
 // hasta añadir su etiqueta a la tabla PHASES.
+data.unknownStages = [...unknownStages];
 if (unknownStages.size) {
   const list = [...unknownStages].join(", ");
   const msg =

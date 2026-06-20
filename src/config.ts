@@ -30,6 +30,7 @@ interface Data {
   updated: string;                     // ISO 8601
   groups: Record<string, string[]>;    // "A" -> ["España", ...]
   matches: Match[];
+  unknownStages?: string[];            // etapas que la API trajo y no sabemos mapear
 }
 
 interface Participant {
