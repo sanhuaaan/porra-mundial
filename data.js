@@ -1,6 +1,6 @@
 // Generado por update.mjs — no editar a mano.
 window.POOL_DATA = {
-  "updated": "2026-06-20T11:18:18.596Z",
+  "updated": "2026-06-20T11:27:52.112Z",
   "groups": {
     "A": [
       "México",

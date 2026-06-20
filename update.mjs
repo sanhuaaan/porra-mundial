@@ -91,9 +91,15 @@ try {
 
 // ── Partidos ──
 const ms = await api(`/competitions/${COMPETITION}/matches`);
+const unknownStages = new Set(); // etapas que la API trae y no sabemos mapear
 for (const m of ms.matches || []) {
   const phase = PHASES[m.stage];
-  if (!phase) continue;
+  if (!phase) {
+    // Cualquier etapa que no sea la liguilla y no esté en PHASES es una
+    // eliminatoria desconocida: esos partidos NO puntuarían. Avisar.
+    if (m.stage && m.stage !== "GROUP_STAGE") unknownStages.add(m.stage);
+    continue;
+  }
   const score = m.score || {};
   const ft = score.fullTime || {};
   const penalties = score.duration === "PENALTY_SHOOTOUT" || (score.penalties && score.penalties.home != null);
@@ -117,6 +123,19 @@ for (const m of ms.matches || []) {
   if (penalties) match.penalties = true;
   if (winner) match.winner = winner;
   data.matches.push(match);
+}
+
+// Aviso si la API trajo etapas de eliminatoria que no sabemos mapear (p. ej. el
+// nombre de la ronda de 32 del formato de 48 equipos). Esos partidos no puntúan
+// hasta añadir su etiqueta a la tabla PHASES.
+if (unknownStages.size) {
+  const list = [...unknownStages].join(", ");
+  const msg =
+    `Etapa(s) de eliminatoria desconocida(s): ${list}. ` +
+    `Añádela(s) a la tabla PHASES de update.mjs o esos partidos NO puntuarán.`;
+  console.warn(`⚠  ${msg}`);
+  // Anotación visible en la ejecución de GitHub Actions (no rompe el deploy).
+  if (process.env.GITHUB_ACTIONS) console.log(`::warning title=Etapa desconocida::${msg}`);
 }
 
 const out =

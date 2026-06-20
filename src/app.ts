@@ -222,7 +222,7 @@ function render(): void {
 
 function teamsTable(p: Participant, table: Map<string, TeamBreakdown>): string {
   let html =
-    '<table class="teams"><thead><tr><th>Selección</th><th class="num">Liguilla</th>' +
+    '<div class="teams-scroll"><table class="teams"><thead><tr><th>Selección</th><th class="num">Liguilla</th>' +
     '<th class="num" title="Bonus de grupo: clasificar + más goleador + menos goleado">Bonus</th>' +
     '<th class="num">Eliminat.</th><th class="num">Total</th></tr></thead><tbody>';
   const rows = p.teams
@@ -242,7 +242,7 @@ function teamsTable(p: Participant, table: Map<string, TeamBreakdown>): string {
       `<tr><td>${flag}${team}</td><td class="num">${fmt(league)}</td><td class="num">${fmt(bonus)}</td>` +
       `<td class="num">${fmt(ko)}</td><td class="num pts">${fmt(tot)}</td></tr>`;
   }
-  return html + "</tbody></table>";
+  return html + "</tbody></table></div>";
 }
 
 document.addEventListener("DOMContentLoaded", render);
