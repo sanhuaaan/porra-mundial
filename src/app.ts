@@ -237,6 +237,64 @@ function participantPoints(participant: Participant, table: Map<string, TeamBrea
   return participant.teams.reduce((s, team) => s + (table.get(team)?.total ?? 0), 0);
 }
 
+// ─── Progreso del torneo ──────────────────────────────────────────────────────
+// Para cada hito (jornadas de grupos + cada ronda de eliminatorias) cuenta
+// partidos FINISHED vs total. Un hito está "completo" cuando todos los suyos lo
+// están: así se ve de un vistazo hasta dónde ha llegado el torneo para todos.
+
+interface PhaseStep {
+  label: string;     // etiqueta corta bajo el punto (J1, 8º, F…)
+  full: string;      // nombre completo (para el title al pasar el ratón)
+  finished: number;
+  total: number;
+  inPlay: boolean;
+}
+
+function phaseProgress(data: Data): PhaseStep[] {
+  const tally = (ms: Match[]) => ({
+    finished: ms.filter((m) => m.status === "FINISHED").length,
+    total: ms.length,
+    inPlay: ms.some((m) => m.status === "IN_PLAY"),
+  });
+
+  const steps: PhaseStep[] = [];
+  for (const md of [1, 2, 3]) {
+    const ms = data.matches.filter((m) => m.phase === "groups" && m.matchday === md);
+    steps.push({ label: `J${md}`, full: `Jornada ${md}`, ...tally(ms) });
+  }
+  const ko: [Phase, string, string][] = [
+    ["round_of_32", "16", "Dieciseisavos"],
+    ["round_of_16", "8º", "Octavos"],
+    ["quarter_finals", "4º", "Cuartos"],
+    ["semi_finals", "SF", "Semifinales"],
+    ["third_place", "3º", "3.er puesto"],
+    ["final", "F", "Final"],
+  ];
+  for (const [phase, label, full] of ko) {
+    steps.push({ label, full, ...tally(data.matches.filter((m) => m.phase === phase)) });
+  }
+  return steps;
+}
+
+function progressBar(data: Data): string {
+  const steps = phaseProgress(data);
+  let html = '<section class="progress"><h2>Progreso del torneo</h2><div class="steps-scroll"><div class="steps">';
+  for (const s of steps) {
+    const done = s.total > 0 && s.finished === s.total;
+    const cur = !done && (s.finished > 0 || s.inPlay);
+    const cls = done ? "done" : cur ? "cur" : "pending";
+    const frac = s.total > 0 ? `${s.finished}/${s.total}` : "—";
+    const cnt = done ? "✓" : cur ? frac : "";
+    html +=
+      `<div class="step ${cls}" title="${s.full} — ${frac}">` +
+      `<span class="dot"></span><span class="lbl">${s.label}</span><span class="cnt">${cnt}</span></div>`;
+  }
+  return html + "</div></div>" +
+    '<div class="legend"><span class="k done"></span>completa ' +
+    '<span class="k cur"></span>en curso ' +
+    '<span class="k pending"></span>pendiente</div></section>';
+}
+
 // ─── Render ──────────────────────────────────────────────────────────────────
 
 function fmt(n: number): string {
@@ -287,6 +345,8 @@ function render(): void {
       `(${unknown.join(", ")}), así que todavía <strong>no puntúan</strong>. ` +
       "Hay que añadir esa fase a la app.</div>";
   }
+
+  html += progressBar(data);
 
   html +=
     '<table class="ranking"><thead><tr><th class="caret-col"></th><th class="pos">#</th>' +
