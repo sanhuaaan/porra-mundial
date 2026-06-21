@@ -93,6 +93,10 @@
     .bd-line { display: flex; justify-content: space-between; gap: 14px; padding: 3px 0; align-items: baseline; border-radius: 6px; transition: background 0.12s; }
     .bd-text { color: var(--ink); }
     .bd-note { color: var(--muted); margin-left: 7px; }
+    /* Distintivo de partido en juego (liguilla en curso): punto rojo que late + «en vivo». */
+    .bd-live { color: #d1242f; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-left: 7px; white-space: nowrap; }
+    .bd-live::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #d1242f; margin-right: 4px; vertical-align: 1px; animation: live-pulse 1.4s ease-in-out infinite; }
+    @keyframes live-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
     .bd-pts { font-variant-numeric: tabular-nums; color: var(--num); font-weight: 600; white-space: nowrap; }
     /* Resaltado de toda la línea al pasar el ratón (solo en dispositivos con hover
        real): ayuda a seguir el "carril" entre el resultado y sus puntos. */

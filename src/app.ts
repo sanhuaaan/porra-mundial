@@ -16,6 +16,7 @@ interface BreakdownLine {
   text: string;          // p. ej. "3-0 vs Croacia"
   note?: string;         // aclaración en gris, p. ej. "victoria +3, golaveraje +3"
   points: number;        // puntos que aporta esta línea
+  live?: boolean;        // el partido se está jugando (marcador y puntos provisionales)
 }
 
 interface TeamBreakdown {
@@ -87,6 +88,7 @@ function compute(data: Data): Map<string, TeamBreakdown> {
         text: `${gf}-${ga} vs ${opp || "—"}`,
         note: `${res} ${signed(wdl)}, golaveraje ${signed(gd)}`,
         points: wdl + gd,
+        live: m.status === "IN_PLAY",
       });
     }
   }
@@ -434,8 +436,9 @@ function breakdown(t: TeamBreakdown): string {
     html += `<div class="bd-sec">${sec}</div>`;
     for (const l of lines) {
       const note = l.note ? `<span class="bd-note">${l.note}</span>` : "";
+      const live = l.live ? '<span class="bd-live">en vivo</span>' : "";
       html +=
-        `<div class="bd-line"><span class="bd-text">${l.text}${note}</span>` +
+        `<div class="bd-line"><span class="bd-text">${l.text}${live}${note}</span>` +
         `<span class="bd-pts">${signed(l.points)}</span></div>`;
     }
   }
