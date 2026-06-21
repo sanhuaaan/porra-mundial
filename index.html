@@ -137,6 +137,12 @@
       .teams th, .teams td { padding: 6px 7px; font-size: 12px; }
       .teams thead th { padding-top: 9px; }
       .flag { width: 18px; height: 13px; margin-right: 6px; }
+
+      /* El stepper se ajusta al ancho del móvil en vez de hacer scroll. */
+      .steps-scroll { overflow-x: hidden; }
+      .steps { min-width: 0; }
+      .step { flex: 1 1 0; min-width: 0; }
+      .step .lbl, .step .cnt { white-space: normal; }
     }
   </style>
 </head>
