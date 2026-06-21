@@ -18,7 +18,7 @@
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import vm from "node:vm";
+import { loadEngine, round1 } from "./lib/engine.mjs";
 
 const dir = dirname(fileURLToPath(import.meta.url));
 const STATE_PATH = join(dir, "notified.json");
@@ -35,26 +35,15 @@ if (!WEBHOOK && !DRY_RUN) {
 }
 
 // ── Cargar el motor de la web en Node (mismo cálculo que el navegador) ──
-// Igual que test/standings.mjs: ejecutamos config + data + app en un sandbox y
-// exponemos las funciones que necesitamos. data.js lo acaba de generar update.mjs.
-const read = (p) => readFileSync(join(dir, p), "utf8");
-const sandbox = { document: { getElementById: () => null, addEventListener: () => {} }, console };
-sandbox.window = sandbox;
-vm.createContext(sandbox);
-vm.runInContext(
-  [read("dist/config.js"), read("data.js"), read("dist/app.js"),
-   "globalThis.__a = { compute, participantPoints, phaseProgress, CONFIG };"].join("\n;\n"),
-  sandbox
-);
-const { compute, participantPoints, phaseProgress, CONFIG } = sandbox.__a;
-const data = sandbox.window.POOL_DATA;
+// data.js lo acaba de generar update.mjs.
+const { compute, participantPoints, phaseProgress, CONFIG, POOL_DATA } = loadEngine();
+const data = POOL_DATA;
 
 // ── Clasificación actual (participantes ordenados por puntos) ──
 const table = compute(data);
 const ranking = CONFIG.participants
   .map((p) => ({ name: p.name, pts: participantPoints(p, table) }))
   .sort((a, b) => b.pts - a.pts);
-const r1 = (n) => Math.round(n * 10) / 10;
 
 // ── Fases terminadas ahora (mismo criterio que el stepper de la web) ──
 const donePhases = phaseProgress(data)
@@ -111,21 +100,26 @@ const MEDALS = ["🥇", "🥈", "🥉"];
 // Marca de puesto: medalla (top 3), 💩 (último) o número en emoji keycap.
 const rankMark = (i, last) => (i < 3 ? MEDALS[i] : i === last ? "💩" : numberEmoji(i + 1));
 
-// Variación de puesto vs el anuncio anterior, con color (verde sube / rojo baja).
-function deltaText(name, idx) {
+// Variación de puesto vs el anuncio anterior: entero (>0 sube, <0 baja) o null si
+// no estaba en el ranking previo.
+const rankDelta = (name, idx) => {
   const prev = prevRanking.indexOf(name);
-  if (prev === -1) return '<font color="#6b7280">—</font>';
-  const d = prev - idx; // >0 sube, <0 baja
-  if (d > 0) return `<font color="#1a7f37">▲${d}</font>`;
-  if (d < 0) return `<font color="#d1242f">▼${-d}</font>`;
-  return '<font color="#6b7280">—</font>';
+  return prev === -1 ? null : prev - idx;
+};
+// Texto plano del delta: ▲n / ▼n / — (para el dry-run).
+const deltaArrow = (d) => (!d ? "—" : d > 0 ? `▲${d}` : `▼${-d}`);
+// Variante con color para la card de Chat (verde sube / rojo baja / gris igual).
+function deltaText(name, idx) {
+  const d = rankDelta(name, idx);
+  const color = d > 0 ? "#1a7f37" : d < 0 ? "#d1242f" : "#6b7280";
+  return `<font color="${color}">${deltaArrow(d)}</font>`;
 }
 
 function card(phaseFull) {
   const last = ranking.length - 1;
   const widgets = ranking.map((row, i) => ({
     decoratedText: {
-      text: `${rankMark(i, last)}  <b>${row.name}</b>  ·  ${r1(row.pts)} pts  ${deltaText(row.name, i)}`,
+      text: `${rankMark(i, last)}  <b>${row.name}</b>  ·  ${round1(row.pts)} pts  ${deltaText(row.name, i)}`,
     },
   }));
   widgets.push({
@@ -164,9 +158,8 @@ for (const phaseFull of pending) {
     console.log("🏆 Porra Mundial 2026 — Terminó: " + phaseFull);
     const last = ranking.length - 1;
     ranking.forEach((row, i) => {
-      const prev = prevRanking.indexOf(row.name);
-      const d = prev === -1 ? "—" : prev - i > 0 ? `▲${prev - i}` : prev - i < 0 ? `▼${i - prev}` : "—";
-      console.log(`  ${rankMark(i, last)} ${row.name.padEnd(8)} ${String(r1(row.pts)).padStart(5)}  ${d}`);
+      const d = deltaArrow(rankDelta(row.name, i));
+      console.log(`  ${rankMark(i, last)} ${row.name.padEnd(8)} ${String(round1(row.pts)).padStart(5)}  ${d}`);
     });
     console.log("  [Ver clasificación] " + WEB_URL);
   } else {

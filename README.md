@@ -24,6 +24,8 @@ cron (1h)  ─►  node update.mjs ─► football-data.org  (reescribe data.js)
 | `src/app.ts`       | Motor de puntuación + render de la tabla.                     |
 | `data.js`         | Resultados (lo genera `update.mjs`; se incluye un ejemplo).|
 | `update.mjs`   | Descarga los resultados y reescribe `data.js`.               |
+| `notify.mjs`       | Avisa a Google Chat al terminar cada fase (ver más abajo).    |
+| `lib/engine.mjs`   | Cargador compartido del motor (sandbox) para los scripts Node.|
 | `dist/`            | JavaScript compilado que carga el navegador.                  |
 | `test/smoke.mjs`   | Prueba del motor de puntuación.                               |
 

@@ -2,13 +2,7 @@
 // real, que cambia con cada actualización) y verifica los puntos contra valores
 // calculados a mano. Carga config.js + app.js en un único ámbito global, como
 // hace el navegador con <script> clásicos.
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
-import vm from "node:vm";
-
-const dir = dirname(fileURLToPath(import.meta.url));
-const read = (p) => readFileSync(join(dir, "..", p), "utf8");
+import { loadEngine, round1 } from "../lib/engine.mjs";
 
 // Escenario de prueba: Grupo A completo + jornada 1 del resto + 1 ronda de 32.
 const FIXTURE = {
@@ -30,25 +24,10 @@ const FIXTURE = {
   ],
 };
 
-const sandbox = {};
-sandbox.window = sandbox;
-sandbox.document = { getElementById: () => null, addEventListener: () => {} };
-sandbox.console = console;
-vm.createContext(sandbox);
-
-const code = [
-  read("dist/config.js"),
-  `window.POOL_DATA = ${JSON.stringify(FIXTURE)};`,
-  read("dist/app.js"),
-  "globalThis.__api = { compute, participantPoints, CONFIG };",
-].join("\n;\n");
-vm.runInContext(code, sandbox);
-
-const { compute, participantPoints, CONFIG } = sandbox.__api;
-const table = compute(sandbox.window.POOL_DATA);
+const { compute, participantPoints, CONFIG, POOL_DATA } = loadEngine({ data: FIXTURE });
+const table = compute(POOL_DATA);
 
 let fails = 0;
-const round1 = (n) => Math.round(n * 10) / 10;
 function check(name, actual, expected) {
   const ok = round1(actual) === round1(expected);
   if (!ok) fails++;
