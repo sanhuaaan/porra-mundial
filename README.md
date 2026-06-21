@@ -8,11 +8,12 @@ de la porra a partir de los resultados reales, que se descargan de
 No hay backend: la web es HTML + JavaScript (compilado de TypeScript) y lee los
 resultados de un fichero `data.js`. Ese fichero lo reescribe el script
 `update.mjs`, que es la única pieza que habla con la API (y la única que
-conoce tu clave). En producción se lanza con un cron cada hora.
+conoce tu clave). En producción lo relanza un cron cada 15 min.
 
 ```
-navegador  ─►  index.html + dist/*.js + data.js        (estático, sin clave)
-cron (1h)  ─►  node update.mjs ─► football-data.org  (reescribe data.js)
+navegador   ─►  index.html + dist/*.js + data.js       (estático, sin clave)
+cron (15m)  ─►  node update.mjs  ─► football-data.org   (reescribe data.js)
+            └─► node notify.mjs  ─► Google Chat         (aviso al cerrar fase)
 ```
 
 ## Estructura
@@ -28,6 +29,59 @@ cron (1h)  ─►  node update.mjs ─► football-data.org  (reescribe data.js)
 | `lib/engine.mjs`   | Cargador compartido del motor (sandbox) para los scripts Node.|
 | `dist/`            | JavaScript compilado que carga el navegador.                  |
 | `test/smoke.mjs`   | Prueba del motor de puntuación.                               |
+
+## Cómo funciona
+
+La clave del diseño es que **la clave de la API nunca llega al navegador**: el
+navegador solo sirve ficheros estáticos y lee un `data.js` ya cocinado; quien
+habla con football-data.org es `update.mjs`, que corre en el CI.
+
+### El ciclo completo
+
+1. **Un cron externo** (cron-job.org) llama cada 15 min a GitHub Actions
+   (`workflow_dispatch`). El scheduler interno de GitHub se descartó por poco
+   fiable (ver más abajo).
+2. El workflow `deploy.yml`, en orden:
+   - compila el TypeScript (`tsc` → `dist/`);
+   - ejecuta **`update.mjs`** con el token (secret): baja partidos y
+     clasificaciones, traduce los nombres ingleses→español (tabla `NAMES`) y las
+     etapas de la API→fases de la porra (tabla `PHASES`), y **reescribe `data.js`**
+     (`window.POOL_DATA = {…}`);
+   - ejecuta **`notify.mjs`** (avisos a Google Chat, ver su sección);
+   - empaqueta `index.html` + `dist/` + `data.js` (con *cache-busting*) y
+     **despliega a GitHub Pages**.
+3. **El navegador** abre la web, carga `config.js` (CONFIG), `data.js` (POOL_DATA)
+   y `app.js`, que al `DOMContentLoaded` ejecuta `render()` y pinta la tabla.
+
+`data.js` **no se versiona a mano**: lo regenera el CI en cada corrida (se incluye
+un ejemplo para poder abrir la web en local sin clave).
+
+### Ámbito global compartido
+
+`config.ts` y `app.ts` se compilan a **`<script>` clásicos** (sin `import/export`),
+así que comparten un único ámbito global: por eso `app.ts` usa `CONFIG`, `FLAGS` y
+los tipos (`Match`, `Data`…) sin importarlos. Los scripts Node (`notify.mjs` y los
+tests) reproducen ese entorno cargando los mismos ficheros en un sandbox `vm` —
+centralizado en **`lib/engine.mjs`** (`loadEngine`)— para calcular **exactamente
+igual** que el navegador.
+
+### El motor (`src/app.ts`)
+
+`compute(data)` recorre los partidos y devuelve, por selección, un desglose de
+puntos (con líneas para el detalle expandible). Lo hace en pasadas: liguilla →
+clasificados → bonus de grupo → eliminatorias (el detalle exacto de cada bono está
+en [Reglas de puntuación](#reglas-de-puntuación-implementadas)). El punto de cada
+participante es la suma de los totales de **sus** selecciones (`participantPoints`).
+
+Después, `render()` ordena a los participantes, pinta la clasificación, el
+**stepper de progreso** del torneo (`phaseProgress`: un hito por jornada y por
+eliminatoria, marcando completa / en curso / pendiente) y el detalle expandible
+participante → selección → línea a línea.
+
+Matiz en vivo: la **liguilla puntúa en directo** (cuenta los partidos `IN_PLAY`),
+mientras que las **eliminatorias** solo puntúan cuando el partido está `FINISHED`
+(dependen de quién pasa). Como el cron corre cada 15 min, en la práctica son fotos
+cada cuarto de hora, no segundo a segundo.
 
 ## Puesta en marcha
 
