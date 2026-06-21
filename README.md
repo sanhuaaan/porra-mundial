@@ -151,6 +151,39 @@ sobradísimo: `update.mjs` hace 2 peticiones por ejecución → ~8 req/h.
 > Vive únicamente en el servicio de cron; nunca se commitea y conviene ponerle
 > caducidad.
 
+## Notificaciones a Google Chat
+
+`notify.mjs` publica un mensaje (una *card*) en un espacio de Google Chat con la
+clasificación **cada vez que termina una fase** del torneo: las 9 del progreso
+(jornadas J1/J2/J3 y cada eliminatoria). Corre en el workflow justo después de
+`update.mjs`, así que usa los resultados recién descargados.
+
+Para no repetir el mensaje en cada ejecución del cron (cada 15 min), las fases ya
+anunciadas se guardan en **`notified.json`**, que el propio workflow commitea con
+`[skip ci]` (por eso el job tiene `contents: write`). El fichero guarda además el
+ranking del último anuncio para mostrar la **variación de puesto** (▲/▼).
+
+Puesta en marcha (una sola vez):
+
+1. En el espacio de Google Chat: **Gestionar webhooks → Añadir webhook**, copia la
+   URL (`https://chat.googleapis.com/v1/spaces/.../messages?key=...`).
+2. Guárdala como secret del repo:
+
+   ```bash
+   gh secret set GOOGLE_CHAT_WEBHOOK --body "https://chat.googleapis.com/v1/spaces/…"
+   ```
+
+> **Primera ejecución (bootstrap):** si `notified.json` no existe, la primera
+> corrida lo **siembra en silencio** con las fases ya jugadas (no envía mensajes
+> retroactivos) y solo avisará de las que terminen a partir de entonces.
+
+Probar en local sin webhook (no postea ni escribe el estado):
+
+```bash
+npm run build
+NOTIFY_DRY_RUN=1 node notify.mjs   # imprime por pantalla lo que se enviaría
+```
+
 ## Alternativa: VPS / servidor propio con cron
 
 Sirve `index.html`, `dist/` y `data.js` con cualquier servidor estático (Nginx,

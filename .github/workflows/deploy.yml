@@ -10,8 +10,9 @@ on:
   workflow_dispatch:
 
 # Permisos que necesita el deploy a GitHub Pages.
+# contents: write para commitear notified.json (estado de las notificaciones).
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -47,6 +48,26 @@ jobs:
 
       - name: Comprobar selecciones elegidas
         run: node test/verify-teams.mjs
+
+      - name: Notificar fases terminadas (Google Chat)
+        run: node notify.mjs
+        env:
+          GOOGLE_CHAT_WEBHOOK: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
+
+      - name: Guardar estado de notificaciones
+        # notify.mjs reescribe notified.json al anunciar (o al sembrar la 1.ª vez).
+        # Se commitea con [skip ci] para que este push NO dispare otra corrida.
+        # concurrency:pages serializa las corridas; el pull --rebase cubre un push
+        # manual intercalado. notified.json no entra en _site (no afecta al sitio).
+        run: |
+          if ! git diff --quiet -- notified.json; then
+            git config user.name  "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add notified.json
+            git commit -m "Notificaciones: fases anunciadas [skip ci]"
+            git pull --rebase --autostash origin main
+            git push
+          fi
 
       - name: Preparar sitio estático
         run: |
