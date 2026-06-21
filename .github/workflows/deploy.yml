@@ -60,7 +60,9 @@ jobs:
         # concurrency:pages serializa las corridas; el pull --rebase cubre un push
         # manual intercalado. notified.json no entra en _site (no afecta al sitio).
         run: |
-          if ! git diff --quiet -- notified.json; then
+          # --porcelain detecta también ficheros NUEVOS (untracked); `git diff`
+          # solo ve los ya trackeados y se saltaría el primer notified.json.
+          if [ -n "$(git status --porcelain notified.json)" ]; then
             git config user.name  "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git add notified.json
