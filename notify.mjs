@@ -131,7 +131,7 @@ function card(phaseFull) {
     cardsV2: [{
       cardId: "porra-fase",
       card: {
-        header: { title: "🏆 Porra Mundial 2026", subtitle: `Terminó: ${phaseFull}` },
+        header: { title: "Minuto y resultado", subtitle: `Terminó: ${phaseFull}` },
         sections: [{ widgets }],
       },
     }],
@@ -155,7 +155,7 @@ for (const phaseFull of pending) {
   const payload = card(phaseFull);
   if (DRY_RUN) {
     console.log(`\n── ${phaseFull} ──`);
-    console.log("🏆 Porra Mundial 2026 — Terminó: " + phaseFull);
+    console.log("Minuto y resultado — Terminó: " + phaseFull);
     const last = ranking.length - 1;
     ranking.forEach((row, i) => {
       const d = deltaArrow(rankDelta(row.name, i));
