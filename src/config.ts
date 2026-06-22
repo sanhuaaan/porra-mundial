@@ -22,6 +22,7 @@ interface Match {
   homeGoals: number | null; // null si aún no jugado
   awayGoals: number | null;
   status: "FINISHED" | "IN_PLAY" | "SCHEDULED";
+  utcDate?: string;      // fecha/hora de inicio (ISO 8601, UTC); puede faltar en data antiguos
   penalties?: boolean;   // eliminatoria decidida en penaltis (golaveraje = 0)
   winner?: string;       // necesario si el partido acabó empatado (penaltis)
 }
@@ -90,4 +91,9 @@ const FLAGS: Record<string, string> = {
   "Marruecos": "ma", "Ecuador": "ec", "Cabo Verde": "cv", "Argentina": "ar", "Catar": "qa",
   "Jordania": "jo", "México": "mx", "Paraguay": "py", "Sudáfrica": "za", "Nueva Zelanda": "nz",
   "Japón": "jp", "Congo": "cg",
+  "Alemania": "de", "Arabia Saudí": "sa", "Argelia": "dz", "Austria": "at", "Brasil": "br",
+  "Canadá": "ca", "Colombia": "co", "Costa de Marfil": "ci", "Curazao": "cw", "Estados Unidos": "us",
+  "Haití": "ht", "Inglaterra": "gb-eng", "Irak": "iq", "Irán": "ir", "Noruega": "no",
+  "Panamá": "pa", "Países Bajos": "nl", "Suecia": "se", "Suiza": "ch", "Túnez": "tn",
+  "Turquía": "tr",
 };

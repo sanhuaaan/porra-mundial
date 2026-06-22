@@ -316,6 +316,64 @@ function formatDate(iso: string): string {
   }
 }
 
+// Bandera de una selección (vacío si no tenemos su código ISO en FLAGS).
+function flagImg(team: string): string {
+  const code = FLAGS[team];
+  return code
+    ? `<img class="flag" src="https://flagcdn.com/w40/${code}.png" ` +
+      `srcset="https://flagcdn.com/w80/${code}.png 2x" alt="" width="20" height="15" loading="lazy">`
+    : "";
+}
+
+// ─── Partidos de hoy y mañana ────────────────────────────────────────────────
+// Lista compacta de los encuentros del día en curso y el siguiente. La franja
+// "hoy/mañana" se calcula en hora LOCAL del navegador (la del que mira), no en
+// UTC. Si data.js no trae utcDate (datos antiguos) la sección no se muestra.
+function upcomingMatches(data: Data): string {
+  const dayMs = 86400000;
+  const now = new Date();
+  const today0 = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const dayOf = (t: number) => Math.floor((t - today0) / dayMs); // 0 = hoy, 1 = mañana
+
+  const rows = data.matches
+    .filter((m) => m.utcDate)
+    .map((m) => ({ m, ts: new Date(m.utcDate!).getTime() }))
+    .filter((x) => !Number.isNaN(x.ts) && (dayOf(x.ts) === 0 || dayOf(x.ts) === 1))
+    .sort((a, b) => a.ts - b.ts);
+  if (!rows.length) return "";
+
+  const time = (ts: number) =>
+    new Date(ts).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+
+  let html = '<section class="upcoming"><h2>Partidos de hoy y mañana</h2>';
+  for (const bucket of [0, 1]) {
+    const day = rows.filter((x) => dayOf(x.ts) === bucket);
+    if (!day.length) continue;
+    html += `<div class="up-daylabel">${bucket === 0 ? "Hoy" : "Mañana"}</div><div class="up-list">`;
+    for (const { m, ts } of day) {
+      const played = m.status === "FINISHED" || m.status === "IN_PLAY";
+      const pen = m.penalties ? " (pen)" : "";
+      const score = played
+        ? `<span class="up-score">${m.homeGoals ?? 0}–${m.awayGoals ?? 0}${pen}</span>`
+        : '<span class="up-score vs">vs</span>';
+      const state =
+        m.status === "IN_PLAY" ? '<span class="bd-live">en vivo</span>'
+        : m.status === "FINISHED" ? '<span class="up-final">final</span>'
+        : "";
+      html +=
+        '<div class="up-row">' +
+        `<span class="up-time">${time(ts)}</span>` +
+        `<span class="up-home"><span class="up-name">${m.home}</span>${flagImg(m.home)}</span>` +
+        score +
+        `<span class="up-away">${flagImg(m.away)}<span class="up-name">${m.away}</span></span>` +
+        `<span class="up-state">${state}</span>` +
+        "</div>";
+    }
+    html += "</div>";
+  }
+  return html + "</section>";
+}
+
 function render(): void {
   const app = document.getElementById("app");
   if (!app) return;
@@ -349,6 +407,7 @@ function render(): void {
   }
 
   html += progressBar(data);
+  html += upcomingMatches(data);
 
   html +=
     '<table class="ranking"><thead><tr><th class="caret-col"></th><th class="pos">#</th>' +
@@ -403,11 +462,7 @@ function teamsTable(p: Participant, table: Map<string, TeamBreakdown>): string {
     const bonus = t ? t.bAdvance + t.bTopScorer + t.bLeastConceded : 0;
     const ko = t ? t.knockoutPoints + t.knockoutGD : 0;
     const tot = t ? t.total : 0;
-    const code = FLAGS[team];
-    const flag = code
-      ? `<img class="flag" src="https://flagcdn.com/w40/${code}.png" ` +
-        `srcset="https://flagcdn.com/w80/${code}.png 2x" alt="" width="20" height="15" loading="lazy">`
-      : "";
+    const flag = flagImg(team);
     const hasDetail = !!(t && t.lines.length);
     const caret = hasDetail ? '<span class="t-caret">›</span>' : '<span class="t-caret-empty"></span>';
     html +=

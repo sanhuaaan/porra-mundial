@@ -126,6 +126,7 @@ for (const m of ms.matches || []) {
     homeGoals: ft.home ?? null,
     awayGoals: ft.away ?? null,
     status: normStatus(m.status),
+    utcDate: m.utcDate, // fecha/hora de inicio (ISO 8601, UTC); para "hoy y mañana"
   };
   if (phase === "groups") {
     match.group = groupLetter(m.group);
