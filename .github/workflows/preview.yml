@@ -18,7 +18,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - run: npm ci
@@ -32,7 +32,7 @@ jobs:
           path: preview.html
           if-no-files-found: error
 
-      - name: Comentar enlace en la PR
+      - name: Publicar enlace del preview
         uses: actions/github-script@v7
         with:
           script: |
@@ -51,9 +51,18 @@ jobs:
               '',
               'Datos de ejemplo (no reales). Más detalle en `PREVIEWS.md`.',
             ].join('\n');
-            const { owner, repo } = context.repo;
-            const issue_number = context.issue.number;
-            const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number });
-            const prev = comments.find((c) => c.body && c.body.includes(marker));
-            if (prev) await github.rest.issues.updateComment({ owner, repo, comment_id: prev.id, body });
-            else await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            // Siempre: resumen del job. Visible en la pestaña de la ejecución sin
+            // necesidad de permisos, también en PRs desde forks (token de solo lectura).
+            await core.summary.addRaw(body).write();
+            // Mejor esfuerzo: comentar en la PR. En PRs desde un fork el token es de
+            // solo lectura y la API devuelve 403; lo avisamos sin romper el workflow.
+            try {
+              const { owner, repo } = context.repo;
+              const issue_number = context.issue.number;
+              const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number });
+              const prev = comments.find((c) => c.body && c.body.includes(marker));
+              if (prev) await github.rest.issues.updateComment({ owner, repo, comment_id: prev.id, body });
+              else await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            } catch (e) {
+              core.warning(`No se pudo comentar en la PR (normal en PRs desde un fork): ${e.message}`);
+            }
