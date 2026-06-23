@@ -8,6 +8,7 @@
     "build": "tsc",
     "watch": "tsc -w",
     "update": "node update.mjs",
+    "preview": "node make-preview.mjs",
     "test": "node test/smoke.mjs",
     "verify": "node test/verify-teams.mjs",
     "standings": "node test/standings.mjs"

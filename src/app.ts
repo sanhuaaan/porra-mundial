@@ -374,6 +374,255 @@ function upcomingMatches(data: Data): string {
   return html + "</section>";
 }
 
+// ─── Visualización de grupos ─────────────────────────────────────────────────
+// Clasificación DEPORTIVA de cada grupo (puntos reales 3/1/0, no los de la
+// porra): una mini-tabla por grupo, plegable bajo un botón. Igual que la
+// liguilla de compute(), cuenta los partidos IN_PLAY, así que va en directo.
+
+interface GroupRow {
+  team: string;
+  played: number;
+  won: number;
+  drawn: number;
+  lost: number;
+  gf: number;
+  ga: number;
+  gd: number;
+  points: number;
+}
+
+// Tabla de un grupo ordenada por puntos -> diferencia de goles -> goles a favor.
+// `matches` deben ser ya solo los del grupo. Lista todos los equipos del grupo,
+// incluidos los que aún no han jugado (a 0).
+function groupStandings(teams: string[], matches: Match[]): GroupRow[] {
+  const rows = new Map<string, GroupRow>();
+  for (const team of teams) {
+    rows.set(team, { team, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0 });
+  }
+  const counts = (m: Match): boolean =>
+    (m.status === "FINISHED" || m.status === "IN_PLAY") && m.homeGoals != null && m.awayGoals != null;
+
+  for (const m of matches) {
+    if (!counts(m) || m.homeGoals == null || m.awayGoals == null) continue;
+    for (const side of ["home", "away"] as const) {
+      const row = rows.get(side === "home" ? m.home : m.away);
+      if (!row) continue; // equipo ajeno al grupo (defensa)
+      const gf = side === "home" ? m.homeGoals : m.awayGoals;
+      const ga = side === "home" ? m.awayGoals : m.homeGoals;
+      row.played++;
+      row.gf += gf;
+      row.ga += ga;
+      if (gf > ga) { row.won++; row.points += 3; }
+      else if (gf === ga) { row.drawn++; row.points += 1; }
+      else { row.lost++; }
+    }
+  }
+  for (const row of rows.values()) row.gd = row.gf - row.ga;
+
+  return [...rows.values()].sort(
+    (a, b) =>
+      b.points - a.points || b.gd - a.gd || b.gf - a.gf || a.team.localeCompare(b.team, "es"),
+  );
+}
+
+// ¿Ha terminado la fase de grupos? (hay partidos de grupo y todos FINISHED).
+function groupMatchesFinished(data: Data): boolean {
+  const gm = data.matches.filter((m) => m.phase === "groups");
+  return gm.length > 0 && gm.every((m) => m.status === "FINISHED");
+}
+
+// Equipos clasificados a dieciseisavos UNA VEZ cerrada la fase: 1.º y 2.º de
+// cada grupo + los 8 mejores terceros (formato del Mundial de 48: 24 + 8 = 32).
+// Set vacío mientras la fase siga abierta (no marcamos nada en directo).
+function qualifiedTeams(data: Data): Set<string> {
+  const set = new Set<string>();
+  if (!groupMatchesFinished(data)) return set;
+  const thirds: GroupRow[] = [];
+  for (const [group, teams] of Object.entries(data.groups)) {
+    if (teams.length === 0) continue;
+    const ms = data.matches.filter((m) => m.phase === "groups" && m.group === group);
+    const rows = groupStandings(teams, ms);
+    if (rows[0]) set.add(rows[0].team);
+    if (rows[1]) set.add(rows[1].team);
+    if (rows[2]) thirds.push(rows[2]);
+  }
+  // Mejores terceros por los mismos criterios: puntos -> dif. de goles -> goles a favor.
+  thirds.sort(
+    (a, b) =>
+      b.points - a.points || b.gd - a.gd || b.gf - a.gf || a.team.localeCompare(b.team, "es"),
+  );
+  for (const t of thirds.slice(0, 8)) set.add(t.team);
+  return set;
+}
+
+function groupsView(data: Data): string {
+  const groups = Object.entries(data.groups)
+    .filter(([, teams]) => teams.length > 0)
+    .sort(([a], [b]) => a.localeCompare(b, "es"));
+  if (!groups.length) return "";
+
+  const phaseOver = groupMatchesFinished(data);
+  const qualified = qualifiedTeams(data);
+
+  let cards = "";
+  for (const [group, teams] of groups) {
+    const ms = data.matches.filter((m) => m.phase === "groups" && m.group === group);
+    const rows = groupStandings(teams, ms);
+    // Todos contra todos: n equipos -> n*(n-1)/2 partidos. Estado del grupo.
+    const expected = (teams.length * (teams.length - 1)) / 2;
+    const finished = ms.filter((m) => m.status === "FINISHED").length;
+    const live = ms.some((m) => m.status === "IN_PLAY");
+    const status =
+      finished === 0 && !live ? "sin jugar"
+      : finished >= expected ? "cerrado"
+      : `${finished}/${expected}`;
+
+    let body = "";
+    rows.forEach((r, i) => {
+      // En directo resaltamos la zona de clasificación (1.º/2.º) con tinte cálido;
+      // una vez cerrada la fase, el único distintivo es el fondo verde de los
+      // que realmente pasan (1.º, 2.º y mejores terceros). No se solapan.
+      const isQual = phaseOver && qualified.has(r.team);
+      const cls = isQual ? " qualified" : !phaseOver && i < 2 ? " q" : "";
+      const gdTxt = r.played ? signed(r.gd) : "—";
+      const ptsTxt = r.played ? String(r.points) : "—";
+      body +=
+        `<tr class="g-row${cls}">` +
+        `<td class="g-pos">${i + 1}</td>` +
+        `<td class="g-team">${flagImg(r.team)}<span class="g-name">${r.team}</span></td>` +
+        `<td class="num">${r.played}</td>` +
+        `<td class="num g-gd">${gdTxt}</td>` +
+        `<td class="num g-pts">${ptsTxt}</td>` +
+        "</tr>";
+    });
+
+    cards +=
+      '<div class="g-card">' +
+      `<div class="g-head"><span class="g-title">Grupo ${group}</span>` +
+      `<span class="g-status${live ? " live" : ""}">${live ? "en vivo" : status}</span></div>` +
+      '<table class="g-table"><thead><tr>' +
+      '<th class="g-pos"></th><th>Equipo</th>' +
+      '<th class="num" title="Partidos jugados">PJ</th>' +
+      '<th class="num" title="Diferencia de goles">DG</th>' +
+      '<th class="num" title="Puntos (3 victoria / 1 empate / 0 derrota)">Pts</th>' +
+      `</tr></thead><tbody>${body}</tbody></table></div>`;
+  }
+
+  return (
+    '<section class="groups">' +
+    '<button class="groups-toggle" type="button" aria-expanded="false">' +
+    '<span class="gt-caret">›</span><span class="gt-label">Ver grupos</span>' +
+    (phaseOver ? '<span class="gt-done">✓ Finalizada</span>' : "") +
+    `<span class="gt-hint">${groups.length} grupos · ${phaseOver ? "clasificados a dieciseisavos" : "clasificación en directo"}</span></button>` +
+    '<div class="groups-panel"><div class="groups-panel-inner">' +
+    `<div class="g-grid">${cards}</div>` +
+    `<div class="g-legend"><span class="g-key${phaseOver ? " q-done" : ""}"></span>` +
+    (phaseOver
+      ? "Clasificados a dieciseisavos: 1.º, 2.º y los 8 mejores terceros."
+      : "Las dos primeras de cada grupo se clasifican directas (también avanzan los mejores terceros).") +
+    "</div></div></div></section>"
+  );
+}
+
+// ─── Cuadro de eliminatorias (bracket) ───────────────────────────────────────
+// Aparece al cerrarse la fase de grupos. Como los datos NO traen la topología
+// del cuadro (qué cruce alimenta a cuál), se asume el emparejamiento posicional
+// de un bracket balanceado: el cruce k de una ronda se nutre de los cruces 2k y
+// 2k+1 de la ronda anterior. Cada celda se rellena con los equipos/resultados
+// reales según van llegando, así que el árbol "se cierra" solo al avanzar.
+
+function shortDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
+  } catch {
+    return iso;
+  }
+}
+
+// Una celda del cuadro: los dos equipos, marcador y ganador resaltado.
+function bracketMatch(m: Match | undefined): string {
+  const tbd = '<div class="bk-team tbd"><span class="bk-name">Por definir</span></div>';
+  if (!m || (!m.home && !m.away)) return `<div class="bk-match empty">${tbd}${tbd}</div>`;
+
+  const played =
+    (m.status === "FINISHED" || m.status === "IN_PLAY") && m.homeGoals != null && m.awayGoals != null;
+  const live = m.status === "IN_PLAY";
+  // Ganador: winner explícito (cubre penaltis) o, si no, el de más goles.
+  let winner = "";
+  if (m.winner) winner = m.winner;
+  else if (played && m.homeGoals !== m.awayGoals) winner = m.homeGoals! > m.awayGoals! ? m.home : m.away;
+
+  const teamRow = (team: string, goals: number | null): string => {
+    if (!team) return tbd;
+    const isWin = !!winner && team === winner;
+    const cls = isWin ? " win" : m.status === "FINISHED" && winner ? " lose" : "";
+    const pen = m.penalties && isWin ? '<span class="bk-pen">pen</span>' : "";
+    const score = played ? `<span class="bk-score">${goals ?? 0}</span>` : "";
+    return `<div class="bk-team${cls}">${flagImg(team)}<span class="bk-name">${team}</span>${pen}${score}</div>`;
+  };
+
+  const state = live
+    ? '<span class="bd-live">en vivo</span>'
+    : m.status === "SCHEDULED" && m.utcDate
+      ? `<span class="bk-date">${shortDate(m.utcDate)}</span>`
+      : "";
+  const cls = live ? "live" : m.status === "FINISHED" ? "done" : "sched";
+  return (
+    `<div class="bk-match ${cls}">` +
+    teamRow(m.home, m.homeGoals) +
+    teamRow(m.away, m.awayGoals) +
+    (state ? `<div class="bk-state">${state}</div>` : "") +
+    "</div>"
+  );
+}
+
+// Árbol anidado (raíz = final, hojas = dieciseisavos). El anidamiento hace que
+// las líneas de conexión salgan robustas en CSS sin alturas fijas.
+function bracketNode(rounds: Match[][], level: number, idx: number): string {
+  if (level === 0) return `<div class="bk-node leaf">${bracketMatch(rounds[0]?.[idx])}</div>`;
+  const left = bracketNode(rounds, level - 1, idx * 2);
+  const right = bracketNode(rounds, level - 1, idx * 2 + 1);
+  return (
+    '<div class="bk-node">' +
+    `<div class="bk-children">${left}${right}</div>` +
+    '<div class="bk-branch"></div>' +
+    bracketMatch(rounds[level]?.[idx]) +
+    "</div>"
+  );
+}
+
+function bracketView(data: Data): string {
+  if (!groupMatchesFinished(data)) return ""; // sólo con la fase de grupos cerrada
+  const order: [Phase, string][] = [
+    ["round_of_32", "Dieciseisavos"],
+    ["round_of_16", "Octavos"],
+    ["quarter_finals", "Cuartos"],
+    ["semi_finals", "Semifinales"],
+    ["final", "Final"],
+  ];
+  const rounds = order.map(([phase]) => data.matches.filter((m) => m.phase === phase));
+  if (rounds.every((r) => r.length === 0)) return "";
+
+  const heads = order.map(([, label]) => `<div class="bk-col-head">${label}</div>`).join("");
+  const tree = bracketNode(rounds, rounds.length - 1, 0);
+
+  const third = data.matches.filter((m) => m.phase === "third_place")[0];
+  const thirdHtml = third
+    ? '<div class="bk-third"><span class="bk-third-label">Tercer puesto</span>' +
+      bracketMatch(third) +
+      "</div>"
+    : "";
+
+  return (
+    '<section class="bracket-section"><h2>Cuadro de eliminatorias</h2>' +
+    '<div class="bracket-scroll"><div class="bracket-inner">' +
+    `<div class="bk-heads">${heads}</div>` +
+    `<div class="bracket">${tree}</div>` +
+    thirdHtml +
+    "</div></div></section>"
+  );
+}
+
 function render(): void {
   const app = document.getElementById("app");
   if (!app) return;
@@ -425,6 +674,8 @@ function render(): void {
   });
 
   html += "</tbody></table>";
+  html += groupsView(data);
+  html += bracketView(data);
   app.innerHTML = html;
 
   // Expandir / contraer el detalle de cada participante (la animación es CSS).
@@ -447,6 +698,19 @@ function render(): void {
       row.classList.toggle("open", open);
     });
   });
+
+  // Botón plegable de la visualización de grupos (mismo patrón de acordeón CSS).
+  const gt = app.querySelector<HTMLButtonElement>(".groups-toggle");
+  const panel = gt?.nextElementSibling;
+  if (gt && panel) {
+    gt.addEventListener("click", () => {
+      const open = panel.classList.toggle("open");
+      gt.classList.toggle("open", open);
+      gt.setAttribute("aria-expanded", String(open));
+      const label = gt.querySelector(".gt-label");
+      if (label) label.textContent = open ? "Ocultar grupos" : "Ver grupos";
+    });
+  }
 }
 
 function teamsTable(p: Participant, table: Map<string, TeamBreakdown>): string {

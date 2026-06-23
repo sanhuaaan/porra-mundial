@@ -9,34 +9,34 @@ window.POOL_DATA = {
       "Sudáfrica"
     ],
     "B": [
-      "Canada",
-      "Switzerland",
+      "Canadá",
+      "Suiza",
       "Bosnia",
       "Catar"
     ],
     "C": [
-      "Brazil",
+      "Brasil",
       "Marruecos",
       "Escocia",
-      "Haiti"
+      "Haití"
     ],
     "D": [
-      "United States",
+      "Estados Unidos",
       "Australia",
       "Paraguay",
-      "Turkey"
+      "Turquía"
     ],
     "E": [
-      "Germany",
-      "Ivory Coast",
+      "Alemania",
+      "Costa de Marfil",
       "Ecuador",
-      "Curaçao"
+      "Curazao"
     ],
     "F": [
-      "Sweden",
+      "Suecia",
       "Japón",
-      "Netherlands",
-      "Tunisia"
+      "Países Bajos",
+      "Túnez"
     ],
     "G": [
       "Nueva Zelanda",
@@ -46,21 +46,21 @@ window.POOL_DATA = {
     ],
     "H": [
       "Uruguay",
-      "Saudi Arabia",
+      "Arabia Saudí",
       "España",
       "Cabo Verde"
     ],
     "I": [
-      "Norway",
+      "Noruega",
       "Francia",
       "Senegal",
-      "Iraq"
+      "Irak"
     ],
     "J": [
       "Argentina",
       "Austria",
       "Jordania",
-      "Algeria"
+      "Argelia"
     ],
     "K": [
       "Colombia",
@@ -69,9 +69,9 @@ window.POOL_DATA = {
       "Uzbekistán"
     ],
     "L": [
-      "England",
+      "Inglaterra",
       "Ghana",
-      "Panama",
+      "Panamá",
       "Croacia"
     ]
   },
@@ -100,7 +100,7 @@ window.POOL_DATA = {
     },
     {
       "phase": "groups",
-      "home": "Canada",
+      "home": "Canadá",
       "away": "Bosnia",
       "homeGoals": 1,
       "awayGoals": 1,
@@ -110,19 +110,19 @@ window.POOL_DATA = {
     },
     {
       "phase": "groups",
-      "home": "United States",
+      "home": "Estados Unidos",
       "away": "Paraguay",
       "homeGoals": 4,
       "awayGoals": 1,
       "status": "FINISHED",
       "group": "D",
       "matchday": 1,
-      "winner": "United States"
+      "winner": "Estados Unidos"
     },
     {
       "phase": "groups",
       "home": "Catar",
-      "away": "Switzerland",
+      "away": "Suiza",
       "homeGoals": 1,
       "awayGoals": 1,
       "status": "FINISHED",
@@ -131,7 +131,7 @@ window.POOL_DATA = {
     },
     {
       "phase": "groups",
-      "home": "Brazil",
+      "home": "Brasil",
       "away": "Marruecos",
       "homeGoals": 1,
       "awayGoals": 1,
@@ -141,7 +141,7 @@ window.POOL_DATA = {
     },
     {
       "phase": "groups",
-      "home": "Haiti",
+      "home": "Haití",
       "away": "Escocia",
       "homeGoals": 0,
       "awayGoals": 1,
@@ -153,7 +153,7 @@ window.POOL_DATA = {
     {
       "phase": "groups",
       "home": "Australia",
-      "away": "Turkey",
+      "away": "Turquía",
       "homeGoals": 2,
       "awayGoals": 0,
       "status": "FINISHED",
@@ -163,18 +163,18 @@ window.POOL_DATA = {
     },
     {
       "phase": "groups",
-      "home": "Germany",
-      "away": "Curaçao",
+      "home": "Alemania",
+      "away": "Curazao",
       "homeGoals": 7,
       "awayGoals": 1,
       "status": "FINISHED",
       "group": "E",
       "matchday": 1,
-      "winner": "Germany"
+      "winner": "Alemania"
     },
     {
       "phase": "groups",
-      "home": "Netherlands",
+      "home": "Países Bajos",
       "away": "Japón",
       "homeGoals": 2,
       "awayGoals": 2,
@@ -184,25 +184,25 @@ window.POOL_DATA = {
     },
     {
       "phase": "groups",
-      "home": "Ivory Coast",
+      "home": "Costa de Marfil",
       "away": "Ecuador",
       "homeGoals": 1,
       "awayGoals": 0,
       "status": "FINISHED",
       "group": "E",
       "matchday": 1,
-      "winner": "Ivory Coast"
+      "winner": "Costa de Marfil"
     },
     {
       "phase": "groups",
-      "home": "Sweden",
-      "away": "Tunisia",
+      "home": "Suecia",
+      "away": "Túnez",
       "homeGoals": 5,
       "awayGoals": 1,
       "status": "FINISHED",
       "group": "F",
       "matchday": 1,
-      "winner": "Sweden"
+      "winner": "Suecia"
     },
     {
       "phase": "groups",
@@ -226,7 +226,7 @@ window.POOL_DATA = {
     },
     {
       "phase": "groups",
-      "home": "Saudi Arabia",
+      "home": "Arabia Saudí",
       "away": "Uruguay",
       "homeGoals": 1,
       "awayGoals": 1,
@@ -257,19 +257,19 @@ window.POOL_DATA = {
     },
     {
       "phase": "groups",
-      "home": "Iraq",
-      "away": "Norway",
+      "home": "Irak",
+      "away": "Noruega",
       "homeGoals": 1,
       "awayGoals": 4,
       "status": "FINISHED",
       "group": "I",
       "matchday": 1,
-      "winner": "Norway"
+      "winner": "Noruega"
     },
     {
       "phase": "groups",
       "home": "Argentina",
-      "away": "Algeria",
+      "away": "Argelia",
       "homeGoals": 3,
       "awayGoals": 0,
       "status": "FINISHED",
@@ -300,19 +300,19 @@ window.POOL_DATA = {
     },
     {
       "phase": "groups",
-      "home": "England",
+      "home": "Inglaterra",
       "away": "Croacia",
       "homeGoals": 4,
       "awayGoals": 2,
       "status": "FINISHED",
       "group": "L",
       "matchday": 1,
-      "winner": "England"
+      "winner": "Inglaterra"
     },
     {
       "phase": "groups",
       "home": "Ghana",
-      "away": "Panama",
+      "away": "Panamá",
       "homeGoals": 1,
       "awayGoals": 0,
       "status": "FINISHED",
@@ -343,25 +343,25 @@ window.POOL_DATA = {
     },
     {
       "phase": "groups",
-      "home": "Switzerland",
+      "home": "Suiza",
       "away": "Bosnia",
       "homeGoals": 4,
       "awayGoals": 1,
       "status": "FINISHED",
       "group": "B",
       "matchday": 2,
-      "winner": "Switzerland"
+      "winner": "Suiza"
     },
     {
       "phase": "groups",
-      "home": "Canada",
+      "home": "Canadá",
       "away": "Catar",
       "homeGoals": 6,
       "awayGoals": 0,
       "status": "FINISHED",
       "group": "B",
       "matchday": 2,
-      "winner": "Canada"
+      "winner": "Canadá"
     },
     {
       "phase": "groups",
@@ -376,14 +376,14 @@ window.POOL_DATA = {
     },
     {
       "phase": "groups",
-      "home": "United States",
+      "home": "Estados Unidos",
       "away": "Australia",
       "homeGoals": 2,
       "awayGoals": 0,
       "status": "FINISHED",
       "group": "D",
       "matchday": 2,
-      "winner": "United States"
+      "winner": "Estados Unidos"
     },
     {
       "phase": "groups",
@@ -398,18 +398,18 @@ window.POOL_DATA = {
     },
     {
       "phase": "groups",
-      "home": "Brazil",
-      "away": "Haiti",
+      "home": "Brasil",
+      "away": "Haití",
       "homeGoals": 3,
       "awayGoals": 0,
       "status": "FINISHED",
       "group": "C",
       "matchday": 2,
-      "winner": "Brazil"
+      "winner": "Brasil"
     },
     {
       "phase": "groups",
-      "home": "Turkey",
+      "home": "Turquía",
       "away": "Paraguay",
       "homeGoals": 0,
       "awayGoals": 1,
@@ -420,8 +420,8 @@ window.POOL_DATA = {
     },
     {
       "phase": "groups",
-      "home": "Netherlands",
-      "away": "Sweden",
+      "home": "Países Bajos",
+      "away": "Suecia",
       "homeGoals": null,
       "awayGoals": null,
       "status": "SCHEDULED",
@@ -430,8 +430,8 @@ window.POOL_DATA = {
     },
     {
       "phase": "groups",
-      "home": "Germany",
-      "away": "Ivory Coast",
+      "home": "Alemania",
+      "away": "Costa de Marfil",
       "homeGoals": null,
       "awayGoals": null,
       "status": "SCHEDULED",
@@ -441,7 +441,7 @@ window.POOL_DATA = {
     {
       "phase": "groups",
       "home": "Ecuador",
-      "away": "Curaçao",
+      "away": "Curazao",
       "homeGoals": null,
       "awayGoals": null,
       "status": "SCHEDULED",
@@ -450,7 +450,7 @@ window.POOL_DATA = {
     },
     {
       "phase": "groups",
-      "home": "Tunisia",
+      "home": "Túnez",
       "away": "Japón",
       "homeGoals": null,
       "awayGoals": null,
@@ -461,7 +461,7 @@ window.POOL_DATA = {
     {
       "phase": "groups",
       "home": "España",
-      "away": "Saudi Arabia",
+      "away": "Arabia Saudí",
       "homeGoals": null,
       "awayGoals": null,
       "status": "SCHEDULED",
@@ -511,7 +511,7 @@ window.POOL_DATA = {
     {
       "phase": "groups",
       "home": "Francia",
-      "away": "Iraq",
+      "away": "Irak",
       "homeGoals": null,
       "awayGoals": null,
       "status": "SCHEDULED",
@@ -520,7 +520,7 @@ window.POOL_DATA = {
     },
     {
       "phase": "groups",
-      "home": "Norway",
+      "home": "Noruega",
       "away": "Senegal",
       "homeGoals": null,
       "awayGoals": null,
@@ -531,7 +531,7 @@ window.POOL_DATA = {
     {
       "phase": "groups",
       "home": "Jordania",
-      "away": "Algeria",
+      "away": "Argelia",
       "homeGoals": null,
       "awayGoals": null,
       "status": "SCHEDULED",
@@ -550,7 +550,7 @@ window.POOL_DATA = {
     },
     {
       "phase": "groups",
-      "home": "England",
+      "home": "Inglaterra",
       "away": "Ghana",
       "homeGoals": null,
       "awayGoals": null,
@@ -560,7 +560,7 @@ window.POOL_DATA = {
     },
     {
       "phase": "groups",
-      "home": "Panama",
+      "home": "Panamá",
       "away": "Croacia",
       "homeGoals": null,
       "awayGoals": null,
@@ -580,8 +580,8 @@ window.POOL_DATA = {
     },
     {
       "phase": "groups",
-      "home": "Switzerland",
-      "away": "Canada",
+      "home": "Suiza",
+      "away": "Canadá",
       "homeGoals": null,
       "awayGoals": null,
       "status": "SCHEDULED",
@@ -601,7 +601,7 @@ window.POOL_DATA = {
     {
       "phase": "groups",
       "home": "Marruecos",
-      "away": "Haiti",
+      "away": "Haití",
       "homeGoals": null,
       "awayGoals": null,
       "status": "SCHEDULED",
@@ -611,7 +611,7 @@ window.POOL_DATA = {
     {
       "phase": "groups",
       "home": "Escocia",
-      "away": "Brazil",
+      "away": "Brasil",
       "homeGoals": null,
       "awayGoals": null,
       "status": "SCHEDULED",
@@ -641,7 +641,7 @@ window.POOL_DATA = {
     {
       "phase": "groups",
       "home": "Ecuador",
-      "away": "Germany",
+      "away": "Alemania",
       "homeGoals": null,
       "awayGoals": null,
       "status": "SCHEDULED",
@@ -650,8 +650,8 @@ window.POOL_DATA = {
     },
     {
       "phase": "groups",
-      "home": "Curaçao",
-      "away": "Ivory Coast",
+      "home": "Curazao",
+      "away": "Costa de Marfil",
       "homeGoals": null,
       "awayGoals": null,
       "status": "SCHEDULED",
@@ -660,8 +660,8 @@ window.POOL_DATA = {
     },
     {
       "phase": "groups",
-      "home": "Tunisia",
-      "away": "Netherlands",
+      "home": "Túnez",
+      "away": "Países Bajos",
       "homeGoals": null,
       "awayGoals": null,
       "status": "SCHEDULED",
@@ -671,7 +671,7 @@ window.POOL_DATA = {
     {
       "phase": "groups",
       "home": "Japón",
-      "away": "Sweden",
+      "away": "Suecia",
       "homeGoals": null,
       "awayGoals": null,
       "status": "SCHEDULED",
@@ -680,8 +680,8 @@ window.POOL_DATA = {
     },
     {
       "phase": "groups",
-      "home": "Turkey",
-      "away": "United States",
+      "home": "Turquía",
+      "away": "Estados Unidos",
       "homeGoals": null,
       "awayGoals": null,
       "status": "SCHEDULED",
@@ -700,7 +700,7 @@ window.POOL_DATA = {
     },
     {
       "phase": "groups",
-      "home": "Norway",
+      "home": "Noruega",
       "away": "Francia",
       "homeGoals": null,
       "awayGoals": null,
@@ -711,7 +711,7 @@ window.POOL_DATA = {
     {
       "phase": "groups",
       "home": "Senegal",
-      "away": "Iraq",
+      "away": "Irak",
       "homeGoals": null,
       "awayGoals": null,
       "status": "SCHEDULED",
@@ -731,7 +731,7 @@ window.POOL_DATA = {
     {
       "phase": "groups",
       "home": "Cabo Verde",
-      "away": "Saudi Arabia",
+      "away": "Arabia Saudí",
       "homeGoals": null,
       "awayGoals": null,
       "status": "SCHEDULED",
@@ -760,8 +760,8 @@ window.POOL_DATA = {
     },
     {
       "phase": "groups",
-      "home": "Panama",
-      "away": "England",
+      "home": "Panamá",
+      "away": "Inglaterra",
       "homeGoals": null,
       "awayGoals": null,
       "status": "SCHEDULED",
@@ -810,7 +810,7 @@ window.POOL_DATA = {
     },
     {
       "phase": "groups",
-      "home": "Algeria",
+      "home": "Argelia",
       "away": "Austria",
       "homeGoals": null,
       "awayGoals": null,
