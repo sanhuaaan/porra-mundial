@@ -520,6 +520,8 @@ function groupsContent(data: Data): string {
         thirdsTied.has(r.team) ? " tie"
         : (i < 2 || thirdsIn.has(r.team)) ? (phaseOver ? " qualified" : " q")
         : "";
+      const gfTxt = r.played ? String(r.gf) : "—";
+      const gaTxt = r.played ? String(r.ga) : "—";
       const gdTxt = r.played ? signed(r.gd) : "—";
       const ptsTxt = r.played ? String(r.points) : "—";
       body +=
@@ -527,6 +529,8 @@ function groupsContent(data: Data): string {
         `<td class="g-pos">${i + 1}</td>` +
         `<td class="g-team">${flagImg(r.team)}<span class="g-name">${r.team}</span></td>` +
         `<td class="num">${r.played}</td>` +
+        `<td class="num">${gfTxt}</td>` +
+        `<td class="num">${gaTxt}</td>` +
         `<td class="num g-gd">${gdTxt}</td>` +
         `<td class="num g-pts">${ptsTxt}</td>` +
         "</tr>";
@@ -539,6 +543,8 @@ function groupsContent(data: Data): string {
       '<table class="g-table"><thead><tr>' +
       '<th class="g-pos"></th><th>Equipo</th>' +
       '<th class="num" title="Partidos jugados">PJ</th>' +
+      '<th class="num" title="Goles a favor">GF</th>' +
+      '<th class="num" title="Goles en contra">GC</th>' +
       '<th class="num" title="Diferencia de goles">DG</th>' +
       '<th class="num" title="Puntos (3 victoria / 1 empate / 0 derrota)">Pts</th>' +
       `</tr></thead><tbody>${body}</tbody></table></div>`;
