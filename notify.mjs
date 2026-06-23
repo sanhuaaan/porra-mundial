@@ -19,6 +19,7 @@ import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { loadEngine, round1 } from "./lib/engine.mjs";
+import { randomQuote } from "./quotes.mjs";
 
 const dir = dirname(fileURLToPath(import.meta.url));
 const STATE_PATH = join(dir, "notified.json");
@@ -115,13 +116,15 @@ function deltaText(name, idx) {
   return `<font color="${color}">${deltaArrow(d)}</font>`;
 }
 
-function card(phaseFull) {
+function card(phaseFull, quote) {
   const last = ranking.length - 1;
   const widgets = ranking.map((row, i) => ({
     decoratedText: {
       text: `${rankMark(i, last)}  <b>${row.name}</b>  ·  ${round1(row.pts)} pts  ${deltaText(row.name, i)}`,
     },
   }));
+  // Remate al estilo García: una de sus frases, atribuida.
+  widgets.push({ textParagraph: { text: `<i>«${quote}»</i><br>— José María García` } });
   widgets.push({
     buttonList: {
       buttons: [{ text: "Ver clasificación", onClick: { openLink: { url: WEB_URL } } }],
@@ -152,7 +155,8 @@ async function post(payload) {
 // si falla, se reintenta en la próxima corrida. Nunca rompe el deploy.
 let posted = 0;
 for (const phaseFull of pending) {
-  const payload = card(phaseFull);
+  const quote = randomQuote();
+  const payload = card(phaseFull, quote);
   if (DRY_RUN) {
     console.log(`\n── ${phaseFull} ──`);
     console.log("Minuto y resultado — Terminó: " + phaseFull);
@@ -161,6 +165,7 @@ for (const phaseFull of pending) {
       const d = deltaArrow(rankDelta(row.name, i));
       console.log(`  ${rankMark(i, last)} ${row.name.padEnd(8)} ${String(round1(row.pts)).padStart(5)}  ${d}`);
     });
+    console.log(`  «${quote}» — José María García`);
     console.log("  [Ver clasificación] " + WEB_URL);
   } else {
     try {
