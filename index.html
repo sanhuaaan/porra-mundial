@@ -130,12 +130,11 @@
     .legend .k.done { background: var(--accent); border-color: var(--accent); }
     .legend .k.cur { border-color: var(--accent); }
 
-    /* Partidos de hoy y mañana: lista compacta bajo el progreso. */
+    /* Últimos y próximos partidos: lista compacta bajo el progreso. */
     .upcoming { margin-bottom: 32px; }
     .upcoming h2 { margin-top: 8px; }
-    .up-daylabel { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 700; margin: 14px 0 6px; }
-    .up-list { background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
-    .up-row { display: grid; grid-template-columns: 46px 1fr 54px 1fr 64px; align-items: center; gap: 10px; padding: 9px 14px; font-size: 13.5px; }
+    .up-list { background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; margin-top: 8px; }
+    .up-row { display: grid; grid-template-columns: 96px 1fr 54px 1fr 64px; align-items: center; gap: 10px; padding: 9px 14px; font-size: 13.5px; }
     .up-row + .up-row { border-top: 1px solid var(--line); }
     .up-time { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12.5px; }
     .up-home, .up-away { display: flex; align-items: center; gap: 7px; min-width: 0; }
@@ -146,6 +145,128 @@
     .up-state { text-align: right; white-space: nowrap; }
     .up-state .bd-live { margin-left: 0; }
     .up-final { color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; font-size: 10px; }
+
+    /* Cabecera de progreso: título + botón pequeño que abre la modal. */
+    .progress-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .progress-head h2 { margin: 0; }
+    /* Botón compacto (pill) que abre la modal con la vista de torneo. */
+    .modal-open {
+      flex: none; display: inline-flex; align-items: center; gap: 6px;
+      background: var(--card); border: 1px solid var(--line); border-radius: 999px;
+      padding: 5px 13px; cursor: pointer; font: inherit; font-size: 12.5px; font-weight: 600;
+      color: var(--ink); white-space: nowrap; transition: background 0.12s, border-color 0.12s;
+    }
+    .modal-open:hover { background: #f7f3ec; border-color: var(--accent); }
+
+    /* Modal a pantalla casi completa: barra + área de contenido. */
+    .modal[hidden] { display: none; }
+    .modal { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; }
+    .modal-backdrop { position: absolute; inset: 0; background: rgba(20, 16, 12, 0.45); }
+    .modal-box {
+      position: relative; display: flex; flex-direction: column; width: 100%;
+      max-width: 1800px; height: 92vh; background: var(--bg); border-radius: 14px;
+      overflow: hidden; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+    .modal-bar { flex: none; display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+    .modal-title { font-size: 15px; font-weight: 700; color: var(--ink); }
+    .modal-close { font: inherit; font-size: 24px; line-height: 1; cursor: pointer; border: none; background: none; color: var(--muted); padding: 0 4px; }
+    .modal-close:hover { color: var(--ink); }
+    /* Grupos: scroll vertical si no caben. Cuadro: se escala (bk-fit) sin scroll. */
+    .modal-scroll { flex: 1; min-height: 0; overflow: auto; padding: 18px; }
+    .bk-fit { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    .bk-fit-inner { width: max-content; transform-origin: center center; }
+    body.modal-on { overflow: hidden; }
+
+    /* 12 grupos en 4 columnas -> 3 filas de 4. minmax(0,1fr) deja que encojan sin desbordar. */
+    .g-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; padding-top: 14px; }
+    .g-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+    .g-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 11px 14px 8px; }
+    .g-title { font-weight: 700; font-size: 14px; }
+    .g-status { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 700; white-space: nowrap; }
+    .g-status.live { color: #d1242f; }
+
+    .g-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .g-table th, .g-table td { padding: 6px 8px; font-size: 13px; border: none; }
+    .g-table thead th { color: var(--muted); font-weight: 600; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; padding-bottom: 4px; }
+    .g-table tbody tr { border-top: 1px solid var(--line); }
+    .g-table .num { text-align: right; color: var(--muted); width: 30px; font-variant-numeric: tabular-nums; }
+    .g-pos { width: 26px; color: var(--muted); text-align: center; font-variant-numeric: tabular-nums; }
+    .g-team { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .g-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .g-team .flag { margin-right: 0; flex: none; }
+    .g-pts { color: var(--num) !important; font-weight: 700; }
+    /* En directo: zona de clasificación directa (1.º y 2.º) con tinte cálido + barra. */
+    .g-row.q { background: #fbf4ef; }
+    .g-row.q .g-pos { color: var(--accent); font-weight: 700; }
+    .g-row.q td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+    /* Fase cerrada: los clasificados a dieciseisavos, con un fondo verde fino. */
+    .g-row.qualified { background: #e9f6ef; }
+    /* Terceros empatados en el corte sin desempate posible (sin fair play ni
+       ranking FIFA en los datos): zona indecisa, en ámbar. */
+    .g-row.tie { background: #fff7e0; }
+    .g-row.tie .g-pos { color: #b8860b; font-weight: 700; }
+    .g-row.tie td:first-child { box-shadow: inset 3px 0 0 #e0b020; }
+
+    .g-legend { margin-top: 16px; font-size: 12px; color: var(--muted); line-height: 1.4; }
+    .g-key { display: inline-block; width: 11px; height: 11px; border-radius: 3px; background: #fbf4ef; box-shadow: inset 3px 0 0 var(--accent); vertical-align: -1px; margin-right: 6px; }
+    .g-key.q-done { background: #e9f6ef; box-shadow: inset 0 0 0 1px #b9e0ca; }
+    .g-key.tie { background: #fff7e0; box-shadow: inset 3px 0 0 #e0b020; }
+
+    /* Cuadro de eliminatorias (bracket en árbol de dos lados), dentro de la modal.
+       Anchos derivados de estas vars: así cabeceras y árbol siempre cuadran
+       (basta cambiar las vars en móvil); luego bk-fit lo escala para caber.
+       Las celdas (200px) las fija el largo de los nombres; los huecos (ramas y
+       enlaces) se recortan al mínimo legible para que el cuadro pida menos ancho
+       y bk-fit tenga que reducir menos -> texto más grande. */
+    .bk-fit-inner { --bk-match: 200px; --bk-branch: 28px; --bk-link: 24px; }
+
+    /* Cabeceras de columna, simétricas: de fuera adentro a ambos lados. */
+    .bk-heads { display: flex; margin-bottom: 6px; }
+    .bk-col-head { flex: 0 0 calc(var(--bk-branch) + var(--bk-match)); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 700; text-align: center; }
+    .bk-heads.two-sided { justify-content: center; }
+    .bk-col-head.h-leaf { flex-basis: var(--bk-match); }           /* 16avos: hoja, sin rama */
+    .bk-col-head.h-final { flex-basis: calc(2 * var(--bk-link) + var(--bk-match)); } /* final + sus dos enlaces */
+
+    /* Árbol: cada nodo = [hijos][rama][partido]. En el lado espejo (derecho) se
+       invierte a [partido][rama][hijos] para que crezca hacia el centro. */
+    .bracket { display: flex; }
+    .bracket.two-sided { align-items: center; justify-content: center; }
+    .bk-node { display: flex; align-items: center; }
+    .bk-node.mirror { flex-direction: row-reverse; }
+    .bk-children { display: flex; flex-direction: column; justify-content: space-around; }
+    .bk-branch { flex: 0 0 var(--bk-branch); align-self: stretch; position: relative; }
+    /* vertical uniendo los centros de los dos hijos (25%/75% con space-around) */
+    .bk-branch::before { content: ""; position: absolute; left: 0; top: 25%; bottom: 25%; width: 2px; background: var(--line); }
+    /* horizontal desde la vertical hacia el partido padre */
+    .bk-branch::after { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 2px; background: var(--line); }
+    /* lado espejo: la vertical va al otro borde de la rama (lado de los hijos) */
+    .bk-node.mirror > .bk-branch::before { left: auto; right: 0; }
+
+    /* Enlace recto semifinal -> final (un partido a otro, sin bifurcación). */
+    .bk-link { flex: 0 0 var(--bk-link); align-self: stretch; position: relative; }
+    .bk-link::after { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 2px; background: var(--line); }
+
+    /* Celda de partido. */
+    .bk-match { flex: 0 0 var(--bk-match); width: var(--bk-match); background: var(--card); border: 1px solid var(--line); border-radius: 9px; margin: 5px 0; overflow: hidden; font-size: 13px; }
+    .bk-team { display: flex; align-items: center; gap: 6px; padding: 5px 8px; }
+    .bk-team + .bk-team { border-top: 1px solid var(--line); }
+    .bk-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink); }
+    .bk-team .flag { margin-right: 0; flex: none; }
+    .bk-score { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--num); flex: none; }
+    .bk-team.win { background: #f0f8f3; }
+    .bk-team.win .bk-name { font-weight: 700; }
+    .bk-team.lose { opacity: 0.5; }
+    .bk-team.tbd .bk-name { color: var(--muted); font-style: italic; }
+    .bk-pen { font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase; flex: none; }
+    .bk-match.empty { opacity: 0.65; }
+    .bk-match.live { border-color: #f3b8bc; }
+    .bk-state { padding: 0 8px 4px; text-align: right; }
+    .bk-state .bd-live { margin-left: 0; }
+    .bk-date { font-size: 10px; color: var(--muted); }
+
+    /* Tercer puesto, aparte del árbol. */
+    .bk-third { display: flex; align-items: center; gap: 12px; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+    .bk-third-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 700; flex: none; }
 
     @media (max-width: 600px) {
       .wrap { padding: 24px 12px 56px; }
@@ -165,9 +286,16 @@
       .step { flex: 1 1 0; min-width: 0; }
       .step .lbl, .step .cnt { white-space: normal; }
 
-      /* Partidos de hoy/mañana: columnas más estrechas para que quepa. */
-      .up-row { grid-template-columns: 38px 1fr 46px 1fr 52px; gap: 7px; padding: 9px 10px; font-size: 12.5px; }
-      .up-time { font-size: 11.5px; }
+      /* Últimos/próximos: columnas más estrechas para que quepa. */
+      .up-row { grid-template-columns: 78px 1fr 44px 1fr 50px; gap: 7px; padding: 9px 10px; font-size: 12.5px; }
+      .up-time { font-size: 11px; }
+
+      /* Grupos: una sola columna en móvil. */
+      .g-grid { grid-template-columns: 1fr; }
+
+      /* Bracket: celdas más compactas (las vars recalculan todos los anchos). */
+      .bk-fit-inner { --bk-match: 158px; --bk-branch: 22px; --bk-link: 18px; }
+      .bk-match { font-size: 12px; }
     }
   </style>
 </head>

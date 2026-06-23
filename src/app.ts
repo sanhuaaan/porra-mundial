@@ -278,9 +278,12 @@ function phaseProgress(data: Data): PhaseStep[] {
   return steps;
 }
 
-function progressBar(data: Data): string {
+function progressBar(data: Data, button = ""): string {
   const steps = phaseProgress(data);
-  let html = '<section class="progress"><h2>Progreso del torneo</h2><div class="steps-scroll"><div class="steps">';
+  let html =
+    '<section class="progress"><div class="progress-head"><h2>Progreso del torneo</h2>' +
+    button +
+    '</div><div class="steps-scroll"><div class="steps">';
   for (const s of steps) {
     const done = s.total > 0 && s.finished === s.total;
     const cur = !done && (s.finished > 0 || s.inPlay);
@@ -325,53 +328,355 @@ function flagImg(team: string): string {
     : "";
 }
 
-// ─── Partidos de hoy y mañana ────────────────────────────────────────────────
-// Lista compacta de los encuentros del día en curso y el siguiente. La franja
-// "hoy/mañana" se calcula en hora LOCAL del navegador (la del que mira), no en
-// UTC. Si data.js no trae utcDate (datos antiguos) la sección no se muestra.
+// ─── Últimos y próximos partidos ─────────────────────────────────────────────
+// Ventana alrededor del momento actual: los 4 últimos partidos ya empezados
+// (jugados o en curso) y los 4 siguientes aún por jugar. Cada fila lleva su
+// fecha y hora (en hora LOCAL del navegador). Si data.js no trae utcDate (datos
+// antiguos) la sección no se muestra.
 function upcomingMatches(data: Data): string {
-  const dayMs = 86400000;
-  const now = new Date();
-  const today0 = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  const dayOf = (t: number) => Math.floor((t - today0) / dayMs); // 0 = hoy, 1 = mañana
-
-  const rows = data.matches
+  const dated = data.matches
     .filter((m) => m.utcDate)
     .map((m) => ({ m, ts: new Date(m.utcDate!).getTime() }))
-    .filter((x) => !Number.isNaN(x.ts) && (dayOf(x.ts) === 0 || dayOf(x.ts) === 1))
+    .filter((x) => !Number.isNaN(x.ts))
     .sort((a, b) => a.ts - b.ts);
+  if (!dated.length) return "";
+
+  // Ya empezados (FINISHED/IN_PLAY): los 4 más recientes. Por jugar: los 4 más próximos.
+  const started = (s: Match["status"]): boolean => s === "FINISHED" || s === "IN_PLAY";
+  const rows = dated.filter((x) => started(x.m.status)).slice(-4)
+    .concat(dated.filter((x) => x.m.status === "SCHEDULED").slice(0, 4));
   if (!rows.length) return "";
 
-  const time = (ts: number) =>
-    new Date(ts).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+  const when = (ts: number) =>
+    new Date(ts).toLocaleString("es-ES", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 
-  let html = '<section class="upcoming"><h2>Partidos de hoy y mañana</h2>';
-  for (const bucket of [0, 1]) {
-    const day = rows.filter((x) => dayOf(x.ts) === bucket);
-    if (!day.length) continue;
-    html += `<div class="up-daylabel">${bucket === 0 ? "Hoy" : "Mañana"}</div><div class="up-list">`;
-    for (const { m, ts } of day) {
-      const played = m.status === "FINISHED" || m.status === "IN_PLAY";
-      const pen = m.penalties ? " (pen)" : "";
-      const score = played
-        ? `<span class="up-score">${m.homeGoals ?? 0}–${m.awayGoals ?? 0}${pen}</span>`
-        : '<span class="up-score vs">vs</span>';
-      const state =
-        m.status === "IN_PLAY" ? '<span class="bd-live">en vivo</span>'
-        : m.status === "FINISHED" ? '<span class="up-final">final</span>'
-        : "";
-      html +=
-        '<div class="up-row">' +
-        `<span class="up-time">${time(ts)}</span>` +
-        `<span class="up-home"><span class="up-name">${m.home}</span>${flagImg(m.home)}</span>` +
-        score +
-        `<span class="up-away">${flagImg(m.away)}<span class="up-name">${m.away}</span></span>` +
-        `<span class="up-state">${state}</span>` +
-        "</div>";
-    }
-    html += "</div>";
+  let html = '<section class="upcoming"><h2>Últimos y próximos partidos</h2><div class="up-list">';
+  for (const { m, ts } of rows) {
+    const played = m.status === "FINISHED" || m.status === "IN_PLAY";
+    const pen = m.penalties ? " (pen)" : "";
+    const score = played
+      ? `<span class="up-score">${m.homeGoals ?? 0}–${m.awayGoals ?? 0}${pen}</span>`
+      : '<span class="up-score vs">vs</span>';
+    const state =
+      m.status === "IN_PLAY" ? '<span class="bd-live">en vivo</span>'
+      : m.status === "FINISHED" ? '<span class="up-final">final</span>'
+      : "";
+    html +=
+      '<div class="up-row">' +
+      `<span class="up-time">${when(ts)}</span>` +
+      `<span class="up-home"><span class="up-name">${m.home}</span>${flagImg(m.home)}</span>` +
+      score +
+      `<span class="up-away">${flagImg(m.away)}<span class="up-name">${m.away}</span></span>` +
+      `<span class="up-state">${state}</span>` +
+      "</div>";
   }
-  return html + "</section>";
+  return html + "</div></section>";
+}
+
+// ─── Visualización de grupos ─────────────────────────────────────────────────
+// Clasificación DEPORTIVA de cada grupo (puntos reales 3/1/0, no los de la
+// porra): una mini-tabla por grupo, plegable bajo un botón. Igual que la
+// liguilla de compute(), cuenta los partidos IN_PLAY, así que va en directo.
+
+interface GroupRow {
+  team: string;
+  played: number;
+  won: number;
+  drawn: number;
+  lost: number;
+  gf: number;
+  ga: number;
+  gd: number;
+  points: number;
+}
+
+// Tabla de un grupo ordenada por puntos -> diferencia de goles -> goles a favor.
+// `matches` deben ser ya solo los del grupo. Lista todos los equipos del grupo,
+// incluidos los que aún no han jugado (a 0).
+function groupStandings(teams: string[], matches: Match[]): GroupRow[] {
+  const rows = new Map<string, GroupRow>();
+  for (const team of teams) {
+    rows.set(team, { team, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0 });
+  }
+  const counts = (m: Match): boolean =>
+    (m.status === "FINISHED" || m.status === "IN_PLAY") && m.homeGoals != null && m.awayGoals != null;
+
+  for (const m of matches) {
+    if (!counts(m) || m.homeGoals == null || m.awayGoals == null) continue;
+    for (const side of ["home", "away"] as const) {
+      const row = rows.get(side === "home" ? m.home : m.away);
+      if (!row) continue; // equipo ajeno al grupo (defensa)
+      const gf = side === "home" ? m.homeGoals : m.awayGoals;
+      const ga = side === "home" ? m.awayGoals : m.homeGoals;
+      row.played++;
+      row.gf += gf;
+      row.ga += ga;
+      if (gf > ga) { row.won++; row.points += 3; }
+      else if (gf === ga) { row.drawn++; row.points += 1; }
+      else { row.lost++; }
+    }
+  }
+  for (const row of rows.values()) row.gd = row.gf - row.ga;
+
+  return [...rows.values()].sort(
+    (a, b) =>
+      b.points - a.points || b.gd - a.gd || b.gf - a.gf || a.team.localeCompare(b.team, "es"),
+  );
+}
+
+// ¿Ha terminado la fase de grupos? (hay partidos de grupo y todos FINISHED).
+function groupMatchesFinished(data: Data): boolean {
+  const gm = data.matches.filter((m) => m.phase === "groups");
+  return gm.length > 0 && gm.every((m) => m.status === "FINISHED");
+}
+
+// Equipos clasificados a dieciseisavos UNA VEZ cerrada la fase: 1.º y 2.º de
+// cada grupo + los 8 mejores terceros (formato del Mundial de 48: 24 + 8 = 32).
+// Set vacío mientras la fase siga abierta (no marcamos nada en directo).
+function qualifiedTeams(data: Data): Set<string> {
+  const set = new Set<string>();
+  if (!groupMatchesFinished(data)) return set;
+  const thirds: GroupRow[] = [];
+  for (const [group, teams] of Object.entries(data.groups)) {
+    if (teams.length === 0) continue;
+    const ms = data.matches.filter((m) => m.phase === "groups" && m.group === group);
+    const rows = groupStandings(teams, ms);
+    if (rows[0]) set.add(rows[0].team);
+    if (rows[1]) set.add(rows[1].team);
+    if (rows[2]) thirds.push(rows[2]);
+  }
+  // Mejores terceros por los mismos criterios: puntos -> dif. de goles -> goles a favor.
+  thirds.sort(
+    (a, b) =>
+      b.points - a.points || b.gd - a.gd || b.gf - a.gf || a.team.localeCompare(b.team, "es"),
+  );
+  for (const t of thirds.slice(0, 8)) set.add(t.team);
+  return set;
+}
+
+// Clasificación CRUZADA de los terceros, para el pintado de la fase de grupos.
+// Ordena por los criterios de desempate DISPONIBLES en el feed: puntos ->
+// diferencia de goles -> goles a favor. El reglamento añade fair play (tarjetas)
+// y ranking FIFA, pero esos datos no llegan, así que un empate en estos tres es
+// INDECIDIBLE para nosotros. Devuelve dos conjuntos de terceros:
+//   in   = entran sin discusión en los 8 mejores.
+//   tied = empatados justo en el corte (8.º == 9.º), sin desempate posible.
+// A diferencia de qualifiedTeams (que parte ties por orden alfabético para dar
+// 32 deterministas a la simulación del cuadro), aquí NO se rompe el empate: se
+// marca. Vale en directo (proyección con la clasificación actual) y al cerrar.
+function classifyThirds(data: Data): { in: Set<string>; tied: Set<string> } {
+  const thirds: GroupRow[] = [];
+  for (const [group, teams] of Object.entries(data.groups)) {
+    if (teams.length === 0) continue;
+    const ms = data.matches.filter((m) => m.phase === "groups" && m.group === group);
+    const rows = groupStandings(teams, ms);
+    if (rows[2]) thirds.push(rows[2]);
+  }
+  // Sin desempate alfabético: los empatados quedan adyacentes y "iguales".
+  thirds.sort((a, b) => b.points - a.points || b.gd - a.gd || b.gf - a.gf);
+  const inSet = new Set<string>();
+  const tied = new Set<string>();
+  const key = (r: GroupRow): string => `${r.points}|${r.gd}|${r.gf}`;
+  // Empate en el corte: el 8.º y el 9.º comparten los tres criterios.
+  const cutTie = thirds.length > 8 && key(thirds[7]) === key(thirds[8]) ? key(thirds[7]) : null;
+  thirds.forEach((r, i) => {
+    if (cutTie && key(r) === cutTie) tied.add(r.team);
+    else if (i < 8) inSet.add(r.team);
+  });
+  return { in: inSet, tied };
+}
+
+// Contenido de la vista de grupos (rejilla de mini-clasificaciones + leyenda).
+// Sin envoltura ni botón: se inyecta dentro de la modal. "" si no hay grupos.
+function groupsContent(data: Data): string {
+  const groups = Object.entries(data.groups)
+    .filter(([, teams]) => teams.length > 0)
+    .sort(([a], [b]) => a.localeCompare(b, "es"));
+  if (!groups.length) return "";
+
+  const phaseOver = groupMatchesFinished(data);
+  const { in: thirdsIn, tied: thirdsTied } = classifyThirds(data);
+
+  let cards = "";
+  for (const [group, teams] of groups) {
+    const ms = data.matches.filter((m) => m.phase === "groups" && m.group === group);
+    const rows = groupStandings(teams, ms);
+    // Todos contra todos: n equipos -> n*(n-1)/2 partidos. Estado del grupo.
+    const expected = (teams.length * (teams.length - 1)) / 2;
+    const finished = ms.filter((m) => m.status === "FINISHED").length;
+    const live = ms.some((m) => m.status === "IN_PLAY");
+    const status =
+      finished === 0 && !live ? "sin jugar"
+      : finished >= expected ? "cerrado"
+      : `${finished}/${expected}`;
+
+    let body = "";
+    rows.forEach((r, i) => {
+      // Zona de clasificación: 1.º y 2.º (directos) + mejores terceros. En directo
+      // es proyección (tinte cálido "q"); al cerrar la fase, definitivo (verde
+      // "qualified"). Los terceros empatados en el corte sin desempate posible van
+      // aparte (ámbar "tie"), porque no podemos decidir quién pasa.
+      const cls =
+        thirdsTied.has(r.team) ? " tie"
+        : (i < 2 || thirdsIn.has(r.team)) ? (phaseOver ? " qualified" : " q")
+        : "";
+      const gdTxt = r.played ? signed(r.gd) : "—";
+      const ptsTxt = r.played ? String(r.points) : "—";
+      body +=
+        `<tr class="g-row${cls}">` +
+        `<td class="g-pos">${i + 1}</td>` +
+        `<td class="g-team">${flagImg(r.team)}<span class="g-name">${r.team}</span></td>` +
+        `<td class="num">${r.played}</td>` +
+        `<td class="num g-gd">${gdTxt}</td>` +
+        `<td class="num g-pts">${ptsTxt}</td>` +
+        "</tr>";
+    });
+
+    cards +=
+      '<div class="g-card">' +
+      `<div class="g-head"><span class="g-title">Grupo ${group}</span>` +
+      `<span class="g-status${live ? " live" : ""}">${live ? "en vivo" : status}</span></div>` +
+      '<table class="g-table"><thead><tr>' +
+      '<th class="g-pos"></th><th>Equipo</th>' +
+      '<th class="num" title="Partidos jugados">PJ</th>' +
+      '<th class="num" title="Diferencia de goles">DG</th>' +
+      '<th class="num" title="Puntos (3 victoria / 1 empate / 0 derrota)">Pts</th>' +
+      `</tr></thead><tbody>${body}</tbody></table></div>`;
+  }
+
+  const tieLegend = thirdsTied.size
+    ? '<div class="g-legend"><span class="g-key tie"></span>' +
+      "Terceros empatados en puntos, diferencia de goles y goles a favor: sin fair play " +
+      "ni ranking FIFA en los datos, el último billete a dieciseisavos queda sin decidir." +
+      "</div>"
+    : "";
+
+  return (
+    `<div class="g-grid">${cards}</div>` +
+    `<div class="g-legend"><span class="g-key${phaseOver ? " q-done" : ""}"></span>` +
+    (phaseOver
+      ? "Clasificados a dieciseisavos: 1.º, 2.º y los 8 mejores terceros."
+      : "Zona de clasificación: 1.º y 2.º (directos) y los mejores terceros (provisional).") +
+    "</div>" + tieLegend
+  );
+}
+
+// ─── Cuadro de eliminatorias (bracket) ───────────────────────────────────────
+// Aparece al cerrarse la fase de grupos. Como los datos NO traen la topología
+// del cuadro (qué cruce alimenta a cuál), se asume el emparejamiento posicional
+// de un bracket balanceado: el cruce k de una ronda se nutre de los cruces 2k y
+// 2k+1 de la ronda anterior. Cada celda se rellena con los equipos/resultados
+// reales según van llegando, así que el árbol "se cierra" solo al avanzar.
+
+function shortDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
+  } catch {
+    return iso;
+  }
+}
+
+// Una celda del cuadro: los dos equipos, marcador y ganador resaltado.
+function bracketMatch(m: Match | undefined): string {
+  const tbd = '<div class="bk-team tbd"><span class="bk-name">Por definir</span></div>';
+  if (!m || (!m.home && !m.away)) return `<div class="bk-match empty">${tbd}${tbd}</div>`;
+
+  const played =
+    (m.status === "FINISHED" || m.status === "IN_PLAY") && m.homeGoals != null && m.awayGoals != null;
+  const live = m.status === "IN_PLAY";
+  // Ganador: winner explícito (cubre penaltis) o, si no, el de más goles.
+  let winner = "";
+  if (m.winner) winner = m.winner;
+  else if (played && m.homeGoals !== m.awayGoals) winner = m.homeGoals! > m.awayGoals! ? m.home : m.away;
+
+  const teamRow = (team: string, goals: number | null): string => {
+    if (!team) return tbd;
+    const isWin = !!winner && team === winner;
+    const cls = isWin ? " win" : m.status === "FINISHED" && winner ? " lose" : "";
+    const pen = m.penalties && isWin ? '<span class="bk-pen">pen</span>' : "";
+    const score = played ? `<span class="bk-score">${goals ?? 0}</span>` : "";
+    return `<div class="bk-team${cls}">${flagImg(team)}<span class="bk-name">${team}</span>${pen}${score}</div>`;
+  };
+
+  const state = live
+    ? '<span class="bd-live">en vivo</span>'
+    : m.status === "SCHEDULED" && m.utcDate
+      ? `<span class="bk-date">${shortDate(m.utcDate)}</span>`
+      : "";
+  const cls = live ? "live" : m.status === "FINISHED" ? "done" : "sched";
+  return (
+    `<div class="bk-match ${cls}">` +
+    teamRow(m.home, m.homeGoals) +
+    teamRow(m.away, m.awayGoals) +
+    (state ? `<div class="bk-state">${state}</div>` : "") +
+    "</div>"
+  );
+}
+
+// Árbol anidado (raíz = semifinal de un lado, hojas = dieciseisavos). El
+// anidamiento hace que las líneas de conexión salgan robustas en CSS sin alturas
+// fijas. `mirror` voltea el lado derecho (raíz a la izquierda, hojas a la
+// derecha) reordenando en CSS, para que el cuadro crezca de los dos extremos
+// hacia el centro. El índice ya direcciona el medio-cuadro correcto: la SF k se
+// nutre de los cruces 2k/2k+1 de la ronda anterior, sobre los arrays completos.
+function bracketNode(rounds: Match[][], level: number, idx: number, mirror: boolean): string {
+  const m = mirror ? " mirror" : "";
+  if (level === 0) return `<div class="bk-node leaf${m}">${bracketMatch(rounds[0]?.[idx])}</div>`;
+  const left = bracketNode(rounds, level - 1, idx * 2, mirror);
+  const right = bracketNode(rounds, level - 1, idx * 2 + 1, mirror);
+  return (
+    `<div class="bk-node${m}">` +
+    `<div class="bk-children">${left}${right}</div>` +
+    '<div class="bk-branch"></div>' +
+    bracketMatch(rounds[level]?.[idx]) +
+    "</div>"
+  );
+}
+
+// Contenido del cuadro (cabeceras + árbol de dos lados + tercer puesto). Sin
+// sección ni scroll: se inyecta en la modal, que lo escala para caber sin
+// scroll. "" si la fase de grupos no ha terminado o no hay partidos de KO.
+function bracketContent(data: Data): string {
+  if (!groupMatchesFinished(data)) return ""; // sólo con la fase de grupos cerrada
+  // Rondas hasta semifinales para los dos sub-árboles; la final va en el centro.
+  const treePhases: Phase[] = ["round_of_32", "round_of_16", "quarter_finals", "semi_finals"];
+  const rounds = treePhases.map((phase) => data.matches.filter((m) => m.phase === phase));
+  const finalMatch = data.matches.filter((m) => m.phase === "final")[0];
+  if (rounds.every((r) => r.length === 0) && !finalMatch) return "";
+
+  // Cabeceras simétricas: de fuera adentro a ambos lados, con la final al centro.
+  const labels = ["Dieciseisavos", "Octavos", "Cuartos", "Semifinales"];
+  const headCell = (label: string, leaf: boolean): string =>
+    `<div class="bk-col-head${leaf ? " h-leaf" : ""}">${label}</div>`;
+  const heads =
+    labels.map((l, i) => headCell(l, i === 0)).join("") +
+    '<div class="bk-col-head h-final">Final</div>' +
+    labels.map((l, i) => headCell(l, i === 0)).reverse().join("");
+
+  const root = rounds.length - 1; // semifinales
+  const left = bracketNode(rounds, root, 0, false);
+  const right = bracketNode(rounds, root, 1, true);
+  const tree =
+    '<div class="bracket two-sided">' +
+    left +
+    '<div class="bk-link"></div>' +
+    bracketMatch(finalMatch) +
+    '<div class="bk-link"></div>' +
+    right +
+    "</div>";
+
+  const third = data.matches.filter((m) => m.phase === "third_place")[0];
+  const thirdHtml = third
+    ? '<div class="bk-third"><span class="bk-third-label">Tercer puesto</span>' +
+      bracketMatch(third) +
+      "</div>"
+    : "";
+
+  return (
+    `<div class="bk-heads two-sided">${heads}</div>` +
+    tree +
+    thirdHtml
+  );
 }
 
 function render(): void {
@@ -406,7 +711,8 @@ function render(): void {
       "Hay que añadir esa fase a la app.</div>";
   }
 
-  html += progressBar(data);
+  const modal = modalSection(data);
+  html += progressBar(data, modal.button);
   html += upcomingMatches(data);
 
   html +=
@@ -425,6 +731,7 @@ function render(): void {
   });
 
   html += "</tbody></table>";
+  html += modal.overlay;
   app.innerHTML = html;
 
   // Expandir / contraer el detalle de cada participante (la animación es CSS).
@@ -447,6 +754,55 @@ function render(): void {
       row.classList.toggle("open", open);
     });
   });
+
+  // Modal de la vista de torneo (grupos / cuadro). El cuadro se reescala para
+  // verse de un vistazo sin scroll; los grupos scrollean en vertical si no caben.
+  const modalEl = app.querySelector<HTMLElement>(".modal");
+  const openBtn = app.querySelector<HTMLButtonElement>(".modal-open");
+  if (modalEl && openBtn) {
+    const fit = (): void => {
+      const inner = modalEl.querySelector<HTMLElement>(".bk-fit-inner");
+      const box = inner?.parentElement;
+      if (!inner || !box) return;
+      inner.style.transform = "none"; // medir tamaño natural sin escalar
+      const s = Math.min(1, box.clientWidth / inner.scrollWidth, box.clientHeight / inner.scrollHeight);
+      inner.style.transform = `scale(${s * 0.98})`; // 0.98 = pequeño margen de respiro
+    };
+    const open = (): void => { modalEl.hidden = false; document.body.classList.add("modal-on"); fit(); };
+    const close = (): void => { modalEl.hidden = true; document.body.classList.remove("modal-on"); };
+    openBtn.addEventListener("click", open);
+    modalEl.querySelectorAll(".modal-close, .modal-backdrop").forEach((el) => el.addEventListener("click", close));
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !modalEl.hidden) close(); });
+    window.addEventListener("resize", () => { if (!modalEl.hidden) fit(); });
+  }
+}
+
+// Botón + modal de la vista de torneo. Dentro: los grupos mientras la fase de
+// grupos sigue abierta; el cuadro de eliminatorias una vez cerrada (con fallback
+// a grupos si todavía no hay partidos de KO). Devuelve el botón (pequeño, va
+// junto al título de progreso) y el overlay (fijo, se inyecta al final) por
+// separado. Ambos "" si no hay nada que mostrar.
+function modalSection(data: Data): { button: string; overlay: string } {
+  const phaseOver = groupMatchesFinished(data);
+  const bracket = phaseOver ? bracketContent(data) : "";
+  const content = bracket || groupsContent(data);
+  if (!content) return { button: "", overlay: "" };
+  const isBracket = !!bracket;
+  const title = isBracket ? "Cuadro de eliminatorias" : "Grupos";
+  const label = isBracket ? "Ver eliminatorias" : "Ver grupos";
+  const inner = isBracket
+    ? `<div class="bk-fit"><div class="bk-fit-inner">${content}</div></div>`
+    : `<div class="modal-scroll">${content}</div>`;
+  return {
+    button: `<button class="modal-open" type="button">${label}</button>`,
+    overlay:
+      '<div class="modal" hidden><div class="modal-backdrop"></div>' +
+      '<div class="modal-box">' +
+      `<div class="modal-bar"><span class="modal-title">${title}</span>` +
+      '<button class="modal-close" type="button" aria-label="Cerrar">×</button></div>' +
+      inner +
+      "</div></div>",
+  };
 }
 
 function teamsTable(p: Participant, table: Map<string, TeamBreakdown>): string {
