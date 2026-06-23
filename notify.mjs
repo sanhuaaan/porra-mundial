@@ -123,8 +123,9 @@ function card(phaseFull, quote) {
       text: `${rankMark(i, last)}  <b>${row.name}</b>  ·  ${round1(row.pts)} pts  ${deltaText(row.name, i)}`,
     },
   }));
-  // Remate al estilo García: una de sus frases, atribuida.
-  widgets.push({ textParagraph: { text: `<i>«${quote}»</i><br>— José María García` } });
+  // Remate al estilo García: una de sus frases, atribuida. El <br> inicial deja
+  // un poco de aire respecto a la clasificación.
+  widgets.push({ textParagraph: { text: `<br><i>«${quote}»</i><br>— José María García` } });
   widgets.push({
     buttonList: {
       buttons: [{ text: "Ver clasificación", onClick: { openLink: { url: WEB_URL } } }],
