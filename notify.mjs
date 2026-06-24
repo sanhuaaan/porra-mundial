@@ -98,8 +98,23 @@ const numberEmoji = (n) => KEYCAPS[n - 1] || `<b>${n}</b>`;
 const prevRanking = state.lastRanking;
 const MEDALS = ["🥇", "🥈", "🥉"];
 
-// Marca de puesto: medalla (top 3), 💩 (último) o número en emoji keycap.
-const rankMark = (i, last) => (i < 3 ? MEDALS[i] : i === last ? "💩" : numberEmoji(i + 1));
+// Puesto DEPORTIVO (ranking de competición 1-2-2-4): misma puntuación -> mismo
+// puesto, y el siguiente salta. Se calcula sobre los puntos REDONDEADOS, para que
+// el empate sea exactamente el que se ve en el mensaje.
+const rpts = ranking.map((r) => round1(r.pts));
+const rankOf = (i) => 1 + rpts.filter((p) => p > rpts[i]).length;
+const worstPts = Math.min(...rpts);
+
+// Marca de puesto por su puesto deportivo: medalla (1.º/2.º/3.º), 💩 para TODOS
+// los que comparten la peor puntuación (último), o número en emoji keycap. Los
+// empatados comparten marca; si un puesto queda vacío por empate (p. ej. dos 3.º),
+// el siguiente salta al 5.º.
+const rankMark = (i) => {
+  const rank = rankOf(i);
+  if (rank <= 3) return MEDALS[rank - 1];
+  if (rpts[i] === worstPts) return "💩";
+  return numberEmoji(rank);
+};
 
 // Variación de puesto vs el anuncio anterior: entero (>0 sube, <0 baja) o null si
 // no estaba en el ranking previo.
@@ -117,10 +132,9 @@ function deltaText(name, idx) {
 }
 
 function card(phaseFull, quote) {
-  const last = ranking.length - 1;
   const widgets = ranking.map((row, i) => ({
     decoratedText: {
-      text: `${rankMark(i, last)}  <b>${row.name}</b>  ·  ${round1(row.pts)} pts  ${deltaText(row.name, i)}`,
+      text: `${rankMark(i)}  <b>${row.name}</b>  ·  ${round1(row.pts)} pts  ${deltaText(row.name, i)}`,
     },
   }));
   // Remate al estilo García: una de sus frases, atribuida. El <br> inicial deja
@@ -161,10 +175,9 @@ for (const phaseFull of pending) {
   if (DRY_RUN) {
     console.log(`\n── ${phaseFull} ──`);
     console.log("Minuto y resultado — Terminó: " + phaseFull);
-    const last = ranking.length - 1;
     ranking.forEach((row, i) => {
       const d = deltaArrow(rankDelta(row.name, i));
-      console.log(`  ${rankMark(i, last)} ${row.name.padEnd(8)} ${String(round1(row.pts)).padStart(5)}  ${d}`);
+      console.log(`  ${rankMark(i)} ${row.name.padEnd(8)} ${String(round1(row.pts)).padStart(5)}  ${d}`);
     });
     console.log(`  «${quote}» — José María García`);
     console.log("  [Ver clasificación] " + WEB_URL);
