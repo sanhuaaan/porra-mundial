@@ -93,7 +93,24 @@ function compute(data: Data): Map<string, TeamBreakdown> {
     }
   }
 
-  // 2) +3 a los que pasan de ronda = los que aparecen en cualquier eliminatoria.
+  // Completitud de cada grupo: TODOS sus partidos terminados. NINGÚN bonus de
+  // grupo (avance +3, máximo goleador, menos goleado) se reparte hasta que el
+  // grupo del equipo esté cerrado. Evita que un equipo sume el +3 si la API ya
+  // lo coloca en el cuadro de eliminatorias antes de cerrarse su grupo (cosa que
+  // hace de forma intermitente entre actualizaciones).
+  const teamGroup = new Map<string, string>();
+  const groupComplete = new Map<string, boolean>();
+  for (const [group, teams] of Object.entries(data.groups)) {
+    for (const team of teams) teamGroup.set(team, group);
+    const gms = data.matches.filter((m) => m.phase === "groups" && m.group === group);
+    // Liga de todos contra todos: n equipos -> n*(n-1)/2 partidos.
+    const expected = (teams.length * (teams.length - 1)) / 2;
+    const finished = gms.filter((m) => m.status === "FINISHED").length;
+    groupComplete.set(group, teams.length > 0 && finished >= expected && gms.every((m) => m.status === "FINISHED"));
+  }
+
+  // 2) +3 a los que pasan de ronda = los que aparecen en cualquier eliminatoria,
+  //    pero SÓLO una vez que su grupo está cerrado.
   const qualified = new Set<string>();
   for (const m of data.matches) {
     if (m.phase === "groups") continue;
@@ -101,6 +118,8 @@ function compute(data: Data): Map<string, TeamBreakdown> {
     if (m.away) qualified.add(m.away);
   }
   for (const team of qualified) {
+    const group = teamGroup.get(team);
+    if (!group || !groupComplete.get(group)) continue; // su grupo aún no ha terminado
     const t = get(team);
     t.bAdvance += P.groupBonus.advance;
     t.lines.push({
@@ -113,14 +132,8 @@ function compute(data: Data): Map<string, TeamBreakdown> {
   // 3) Bonus de grupo (sólo cuando el grupo está completo):
   //    +6 al más goleador, +6 al menos goleado (repartidos en caso de empate).
   for (const [group, teams] of Object.entries(data.groups)) {
-    if (teams.length === 0) continue;
+    if (!groupComplete.get(group)) continue; // mismo criterio que el +3 de avance
     const groupMatches = data.matches.filter((m) => m.phase === "groups" && m.group === group);
-    // Liga de todos contra todos: n equipos -> n*(n-1)/2 partidos. El bonus de
-    // grupo sólo se reparte cuando se han jugado (y finalizado) todos.
-    const expected = (teams.length * (teams.length - 1)) / 2;
-    const finished = groupMatches.filter((m) => m.status === "FINISHED").length;
-    const complete = finished >= expected && groupMatches.every((m) => m.status === "FINISHED");
-    if (!complete) continue;
 
     const gf = new Map<string, number>();
     const ga = new Map<string, number>();

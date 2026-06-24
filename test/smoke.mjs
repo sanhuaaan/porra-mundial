@@ -44,8 +44,11 @@ check("España.bonus", table.get("España").bAdvance + table.get("España").bTop
 check("España.knockout", table.get("España").knockoutPoints + table.get("España").knockoutGD, 8);
 check("España.total", table.get("España").total, 34);
 
-// Portugal: J1 gana 2-0 a Bosnia -> 3+2 = 5 ; pierde la ronda de 32 pero clasificó -> +3 ; total 8
-check("Portugal.total", table.get("Portugal").total, 8);
+// Portugal, grupo E: solo ha jugado la J1 (gana 2-0 a Bosnia -> 3+2 = 5). Su
+// grupo NO está completo, así que NO recibe el +3 de avance aunque aparezca en
+// la ronda de 32 (regresión: la API a veces lo coloca pronto en el cuadro).
+// Total = 5. Cuando el grupo E se cierre, sumará el +3.
+check("Portugal.total", table.get("Portugal").total, 5);
 
 // Catar: grupo A completo. 1-1(D)=1 ; 0-2(L)=-2 ; 1-1(D)=1 -> liguilla 0.
 //  GF=2 (no es máx), GA=4 (no es mín) -> sin bonus. No clasifica. Total 0.
