@@ -28,7 +28,14 @@ jobs:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
+      # El token persistido por checkout es el que usa `git push` del estado de
+      # notificaciones. Con main protegida (review obligatorio), el GITHUB_TOKEN
+      # del bot NO puede pushear; un PAT de admin (secret NOTIFY_PAT) sí lo salta.
+      # Fallback a github.token mientras el secret no exista, para no romper nada.
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.NOTIFY_PAT || github.token }}
+          persist-credentials: true
 
       - uses: actions/setup-node@v4
         with:
