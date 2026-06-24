@@ -1,14 +1,15 @@
 {
   "announced": [
-    "Jornada 1"
+    "Jornada 1",
+    "Jornada 2"
   ],
   "lastRanking": [
-    "Elena",
+    "Jon",
     "Unai",
     "Iñaki",
-    "Jon",
-    "Samu",
+    "Martín",
+    "Elena",
     "Sanju",
-    "Martín"
+    "Samu"
   ]
 }
