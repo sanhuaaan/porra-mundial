@@ -724,37 +724,53 @@ function rulesModal(): string {
 const searchKey = (s: string): string =>
   s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 
-function allTeamsContent(data: Data, table: Map<string, TeamBreakdown>): string {
-  const teams = Object.values(data.groups).flat();
-  const rows = teams
-    .map((team) => ({ team, t: table.get(team) }))
-    .sort((a, b) => (b.t?.total ?? 0) - (a.t?.total ?? 0));
+// Cabecera de la tabla de selecciones, compartida por el desglose de un
+// participante (teamsTable) y la lista global "Puntos por selección".
+const TEAMS_HEAD =
+  '<thead><tr><th>Selección</th><th class="num">Liguilla</th>' +
+  '<th class="num" title="Bonus de grupo: clasificar + más goleador + menos goleado">Bonus</th>' +
+  '<th class="num">Eliminat.</th><th class="num">Total</th></tr></thead>';
+
+// Una fila de selección (+ su detalle expandible si tiene puntos). `key` añade el
+// data-team para el buscador de la lista global; se omite en el desglose normal.
+function teamRow(team: string, t: TeamBreakdown | undefined, key?: string): string {
+  const league = t ? t.groupPoints : 0;
+  const bonus = t ? t.bAdvance + t.bTopScorer + t.bLeastConceded : 0;
+  const ko = t ? t.knockoutPoints + t.knockoutGD : 0;
+  const tot = t ? t.total : 0;
+  const hasDetail = !!(t && t.lines.length);
+  const caret = hasDetail ? '<span class="t-caret">›</span>' : '<span class="t-caret-empty"></span>';
+  const attr = key === undefined ? "" : ` data-team="${key}"`;
   let html =
-    '<table class="teams"><thead><tr><th>Selección</th><th class="num">Liguilla</th>' +
-    '<th class="num" title="Bonus de grupo: clasificar + más goleador + menos goleado">Bonus</th>' +
-    '<th class="num">Eliminat.</th><th class="num">Total</th></tr></thead><tbody>';
-  for (const { team, t } of rows) {
-    const league = t ? t.groupPoints : 0;
-    const bonus = t ? t.bAdvance + t.bTopScorer + t.bLeastConceded : 0;
-    const ko = t ? t.knockoutPoints + t.knockoutGD : 0;
-    const tot = t ? t.total : 0;
-    const hasDetail = !!(t && t.lines.length);
-    const caret = hasDetail ? '<span class="t-caret">›</span>' : '<span class="t-caret-empty"></span>';
-    const key = searchKey(team);
+    `<tr class="team-row${hasDetail ? " has-detail" : ""}"${attr}>` +
+    `<td>${caret}${flagImg(team)}${team}</td>` +
+    `<td class="num">${fmt(league)}</td><td class="num">${fmt(bonus)}</td>` +
+    `<td class="num">${fmt(ko)}</td><td class="num pts">${fmt(tot)}</td></tr>`;
+  if (hasDetail) {
     html +=
-      `<tr class="team-row${hasDetail ? " has-detail" : ""}" data-team="${key}">` +
-      `<td>${caret}${flagImg(team)}${team}</td>` +
-      `<td class="num">${fmt(league)}</td><td class="num">${fmt(bonus)}</td>` +
-      `<td class="num">${fmt(ko)}</td><td class="num pts">${fmt(tot)}</td></tr>`;
-    if (hasDetail) {
-      html +=
-        `<tr class="team-detail" data-team="${key}"><td colspan="5">` +
-        '<div class="t-accordion"><div class="t-accordion-inner">' +
-        breakdown(t!) +
-        "</div></div></td></tr>";
-    }
+      `<tr class="team-detail"${attr}><td colspan="5">` +
+      '<div class="t-accordion"><div class="t-accordion-inner">' +
+      breakdown(t!) +
+      "</div></div></td></tr>";
   }
-  return html + "</tbody></table>";
+  return html;
+}
+
+// Filas de las selecciones dadas, ordenadas por total descendente. `search` añade
+// el data-team de cada fila (para el buscador de la lista global).
+function teamRows(teams: string[], table: Map<string, TeamBreakdown>, search = false): string {
+  return teams
+    .map((team) => ({ team, t: table.get(team) }))
+    .sort((a, b) => (b.t?.total ?? 0) - (a.t?.total ?? 0))
+    .map(({ team, t }) => teamRow(team, t, search ? searchKey(team) : undefined))
+    .join("");
+}
+
+function allTeamsContent(data: Data, table: Map<string, TeamBreakdown>): string {
+  return (
+    '<table class="teams">' + TEAMS_HEAD +
+    `<tbody>${teamRows(Object.values(data.groups).flat(), table, true)}</tbody></table>`
+  );
 }
 
 function teamsModal(data: Data, table: Map<string, TeamBreakdown>): string {
@@ -938,34 +954,10 @@ function modalSection(data: Data): { button: string; overlay: string } {
 }
 
 function teamsTable(p: Participant, table: Map<string, TeamBreakdown>): string {
-  let html =
-    '<div class="teams-scroll"><table class="teams"><thead><tr><th>Selección</th><th class="num">Liguilla</th>' +
-    '<th class="num" title="Bonus de grupo: clasificar + más goleador + menos goleado">Bonus</th>' +
-    '<th class="num">Eliminat.</th><th class="num">Total</th></tr></thead><tbody>';
-  const rows = p.teams
-    .map((team) => ({ team, t: table.get(team) }))
-    .sort((a, b) => (b.t?.total ?? 0) - (a.t?.total ?? 0));
-  for (const { team, t } of rows) {
-    const league = t ? t.groupPoints : 0;
-    const bonus = t ? t.bAdvance + t.bTopScorer + t.bLeastConceded : 0;
-    const ko = t ? t.knockoutPoints + t.knockoutGD : 0;
-    const tot = t ? t.total : 0;
-    const flag = flagImg(team);
-    const hasDetail = !!(t && t.lines.length);
-    const caret = hasDetail ? '<span class="t-caret">›</span>' : '<span class="t-caret-empty"></span>';
-    html +=
-      `<tr class="team-row${hasDetail ? " has-detail" : ""}"><td>${caret}${flag}${team}</td>` +
-      `<td class="num">${fmt(league)}</td><td class="num">${fmt(bonus)}</td>` +
-      `<td class="num">${fmt(ko)}</td><td class="num pts">${fmt(tot)}</td></tr>`;
-    if (hasDetail) {
-      html +=
-        '<tr class="team-detail"><td colspan="5">' +
-        '<div class="t-accordion"><div class="t-accordion-inner">' +
-        breakdown(t!) +
-        "</div></div></td></tr>";
-    }
-  }
-  return html + "</tbody></table></div>";
+  return (
+    '<div class="teams-scroll"><table class="teams">' + TEAMS_HEAD +
+    `<tbody>${teamRows(p.teams, table)}</tbody></table></div>`
+  );
 }
 
 // Desglose línea a línea de una selección, agrupado por sección, para el detalle
