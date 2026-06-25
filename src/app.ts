@@ -698,6 +698,112 @@ function bracketContent(data: Data): string {
   );
 }
 
+// ─── Reglas de puntuación (modal propio) ─────────────────────────────────────
+// Contenido derivado de CONFIG.points (única fuente de verdad). Usa clases
+// propias (rules-modal-*) para no chocar con la modal de torneo (.modal).
+function rulesHtml(): string {
+  const g = CONFIG.points.group, gb = CONFIG.points.groupBonus, k = CONFIG.points.knockout;
+  return (
+    '<div class="rules">' +
+    '<div class="rules-sec"><h3>Fase 1 · Liguilla</h3>' +
+    '<p class="rules-lead">Por cada partido de grupos de cada selección:</p><ul>' +
+    `<li><b>+${g.win}</b> victoria · <b>+${g.draw}</b> empate · <b>+${g.loss}</b> derrota.</li>` +
+    "<li>Más el <b>golaveraje</b> del partido (ganar 3-0 → +3; perder 2-4 → −2; empatar 3-3 → 0).</li>" +
+    '</ul><p class="rules-lead">Con el grupo ya disputado entero:</p><ul>' +
+    `<li><b>+${gb.advance}</b> a cada equipo que se clasifica para eliminatorias.</li>` +
+    `<li><b>+${gb.topScorer}</b> al más goleador del grupo y <b>+${gb.leastConceded}</b> al menos goleado (repartidos si hay empate).</li>` +
+    "</ul></div>" +
+    '<div class="rules-sec"><h3>Fase 2 · Eliminatorias</h3>' +
+    '<p class="rules-lead">Por superar cada ronda (ya no se resta):</p><ul>' +
+    `<li><b>+${k.roundOf32}</b> dieciseisavos · <b>+${k.roundOf16}</b> octavos · <b>+${k.quarterFinals}</b> cuartos · <b>+${k.semiFinals}</b> semifinales.</li>` +
+    `<li><b>+${k.final}</b> campeón · <b>+${k.runnerUp}</b> subcampeón · <b>+${k.thirdPlace}</b> tercer puesto.</li>` +
+    "<li>Más el <b>golaveraje a favor</b> de cada eliminatoria ganada (penaltis = 0; la prórroga cuenta con el resultado final).</li>" +
+    "</ul></div>" +
+    '<p class="rules-total">La puntuación de cada participante es la <b>suma</b> de los puntos de todas sus selecciones.</p>' +
+    "</div>"
+  );
+}
+
+function rulesModal(): string {
+  return (
+    '<div class="rules-modal" hidden><div class="rules-modal-backdrop"></div>' +
+    '<div class="rules-modal-box">' +
+    '<div class="rules-modal-bar"><span class="rules-modal-title">Reglas de puntuación</span>' +
+    '<button class="rules-modal-close" type="button" aria-label="Cerrar">×</button></div>' +
+    '<div class="rules-modal-scroll">' + rulesHtml() + "</div>" +
+    "</div></div>"
+  );
+}
+
+// ─── Puntos por selección (modal con buscador) ───────────────────────────────
+// Lista TODAS las selecciones del torneo con los puntos que darían y el mismo
+// desglose expandible (breakdown) que se ve al abrir una selección de un
+// participante. Reutiliza las clases .team-row / .team-detail, así que el
+// listener de expansión de render() también las cubre.
+const searchKey = (s: string): string =>
+  s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+
+// Cabecera de la tabla de selecciones, compartida por el desglose de un
+// participante (teamsTable) y la lista global "Puntos por selección".
+const TEAMS_HEAD =
+  '<thead><tr><th>Selección</th><th class="num">Liguilla</th>' +
+  '<th class="num" title="Bonus de grupo: clasificar + más goleador + menos goleado">Bonus</th>' +
+  '<th class="num">Eliminat.</th><th class="num">Total</th></tr></thead>';
+
+// Una fila de selección (+ su detalle expandible si tiene puntos). `key` añade el
+// data-team para el buscador de la lista global; se omite en el desglose normal.
+function teamRow(team: string, t: TeamBreakdown | undefined, key?: string): string {
+  const league = t ? t.groupPoints : 0;
+  const bonus = t ? t.bAdvance + t.bTopScorer + t.bLeastConceded : 0;
+  const ko = t ? t.knockoutPoints + t.knockoutGD : 0;
+  const tot = t ? t.total : 0;
+  const hasDetail = !!(t && t.lines.length);
+  const caret = hasDetail ? '<span class="t-caret">›</span>' : '<span class="t-caret-empty"></span>';
+  const attr = key === undefined ? "" : ` data-team="${key}"`;
+  let html =
+    `<tr class="team-row${hasDetail ? " has-detail" : ""}"${attr}>` +
+    `<td>${caret}${flagImg(team)}${team}</td>` +
+    `<td class="num">${fmt(league)}</td><td class="num">${fmt(bonus)}</td>` +
+    `<td class="num">${fmt(ko)}</td><td class="num pts">${fmt(tot)}</td></tr>`;
+  if (hasDetail) {
+    html +=
+      `<tr class="team-detail"${attr}><td colspan="5">` +
+      '<div class="t-accordion"><div class="t-accordion-inner">' +
+      breakdown(t!) +
+      "</div></div></td></tr>";
+  }
+  return html;
+}
+
+// Filas de las selecciones dadas, ordenadas por total descendente. `search` añade
+// el data-team de cada fila (para el buscador de la lista global).
+function teamRows(teams: string[], table: Map<string, TeamBreakdown>, search = false): string {
+  return teams
+    .map((team) => ({ team, t: table.get(team) }))
+    .sort((a, b) => (b.t?.total ?? 0) - (a.t?.total ?? 0))
+    .map(({ team, t }) => teamRow(team, t, search ? searchKey(team) : undefined))
+    .join("");
+}
+
+function allTeamsContent(data: Data, table: Map<string, TeamBreakdown>): string {
+  return (
+    '<table class="teams">' + TEAMS_HEAD +
+    `<tbody>${teamRows(Object.values(data.groups).flat(), table, true)}</tbody></table>`
+  );
+}
+
+function teamsModal(data: Data, table: Map<string, TeamBreakdown>): string {
+  return (
+    '<div class="teams-modal" hidden><div class="teams-modal-backdrop"></div>' +
+    '<div class="teams-modal-box">' +
+    '<div class="teams-modal-bar"><span class="teams-modal-title">Puntos por selección</span>' +
+    '<button class="teams-modal-close" type="button" aria-label="Cerrar">×</button></div>' +
+    '<div class="teams-modal-search"><input type="search" class="teams-search" placeholder="Buscar selección…" autocomplete="off"></div>' +
+    '<div class="teams-modal-scroll">' + allTeamsContent(data, table) + "</div>" +
+    "</div></div>"
+  );
+}
+
 function render(): void {
   const app = document.getElementById("app");
   if (!app) return;
@@ -751,6 +857,8 @@ function render(): void {
 
   html += "</tbody></table>";
   html += modal.overlay;
+  html += rulesModal();
+  html += teamsModal(data, table);
   app.innerHTML = html;
 
   // Expandir / contraer el detalle de cada participante (la animación es CSS).
@@ -794,6 +902,46 @@ function render(): void {
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !modalEl.hidden) close(); });
     window.addEventListener("resize", () => { if (!modalEl.hidden) fit(); });
   }
+
+  // Modales propios (reglas y puntos por selección). Sus botones viven en el
+  // <header> (fuera de #app): se buscan en el documento y se usa onclick para no
+  // acumular handlers en re-render.
+  const rulesEl = app.querySelector<HTMLElement>(".rules-modal");
+  const rulesBtn = document.querySelector<HTMLButtonElement>(".rules-open");
+  if (rulesEl) {
+    const close = (): void => { rulesEl.hidden = true; document.body.classList.remove("modal-on"); };
+    if (rulesBtn) rulesBtn.onclick = () => { rulesEl.hidden = false; document.body.classList.add("modal-on"); };
+    rulesEl.querySelectorAll(".rules-modal-close, .rules-modal-backdrop").forEach((el) =>
+      el.addEventListener("click", close));
+  }
+
+  const teamsEl = app.querySelector<HTMLElement>(".teams-modal");
+  const teamsBtn = document.querySelector<HTMLButtonElement>(".teams-open");
+  if (teamsEl) {
+    const close = (): void => { teamsEl.hidden = true; document.body.classList.remove("modal-on"); };
+    const search = teamsEl.querySelector<HTMLInputElement>(".teams-search");
+    if (teamsBtn) teamsBtn.onclick = () => {
+      teamsEl.hidden = false; document.body.classList.add("modal-on"); search?.focus();
+    };
+    teamsEl.querySelectorAll(".teams-modal-close, .teams-modal-backdrop").forEach((el) =>
+      el.addEventListener("click", close));
+    // Buscador: filtra filas (y su detalle) por nombre sin acentos.
+    if (search) search.addEventListener("input", () => {
+      const q = searchKey(search.value).trim();
+      teamsEl.querySelectorAll<HTMLElement>("[data-team]").forEach((el) => {
+        el.style.display = (el.dataset.team ?? "").includes(q) ? "" : "none";
+      });
+    });
+  }
+
+  // Escape cierra cualquiera de los dos modales propios (un solo handler, no pisa
+  // el de la modal de torneo, que usa su propio addEventListener).
+  document.onkeydown = (e: KeyboardEvent): void => {
+    if (e.key !== "Escape") return;
+    for (const el of [rulesEl, teamsEl]) {
+      if (el && !el.hidden) { el.hidden = true; document.body.classList.remove("modal-on"); }
+    }
+  };
 }
 
 // Botón + modal de la vista de torneo. Dentro: los grupos mientras la fase de
@@ -825,34 +973,10 @@ function modalSection(data: Data): { button: string; overlay: string } {
 }
 
 function teamsTable(p: Participant, table: Map<string, TeamBreakdown>): string {
-  let html =
-    '<div class="teams-scroll"><table class="teams"><thead><tr><th>Selección</th><th class="num">Liguilla</th>' +
-    '<th class="num" title="Bonus de grupo: clasificar + más goleador + menos goleado">Bonus</th>' +
-    '<th class="num">Eliminat.</th><th class="num">Total</th></tr></thead><tbody>';
-  const rows = p.teams
-    .map((team) => ({ team, t: table.get(team) }))
-    .sort((a, b) => (b.t?.total ?? 0) - (a.t?.total ?? 0));
-  for (const { team, t } of rows) {
-    const league = t ? t.groupPoints : 0;
-    const bonus = t ? t.bAdvance + t.bTopScorer + t.bLeastConceded : 0;
-    const ko = t ? t.knockoutPoints + t.knockoutGD : 0;
-    const tot = t ? t.total : 0;
-    const flag = flagImg(team);
-    const hasDetail = !!(t && t.lines.length);
-    const caret = hasDetail ? '<span class="t-caret">›</span>' : '<span class="t-caret-empty"></span>';
-    html +=
-      `<tr class="team-row${hasDetail ? " has-detail" : ""}"><td>${caret}${flag}${team}</td>` +
-      `<td class="num">${fmt(league)}</td><td class="num">${fmt(bonus)}</td>` +
-      `<td class="num">${fmt(ko)}</td><td class="num pts">${fmt(tot)}</td></tr>`;
-    if (hasDetail) {
-      html +=
-        '<tr class="team-detail"><td colspan="5">' +
-        '<div class="t-accordion"><div class="t-accordion-inner">' +
-        breakdown(t!) +
-        "</div></div></td></tr>";
-    }
-  }
-  return html + "</tbody></table></div>";
+  return (
+    '<div class="teams-scroll"><table class="teams">' + TEAMS_HEAD +
+    `<tbody>${teamRows(p.teams, table)}</tbody></table></div>`
+  );
 }
 
 // Desglose línea a línea de una selección, agrupado por sección, para el detalle
