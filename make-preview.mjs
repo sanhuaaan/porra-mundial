@@ -146,7 +146,13 @@ const html = `<!DOCTYPE html>
 <body>
   <div class="wrap">
     <header>
-      <h1>Porra Mundial 2026 · preview</h1>
+      <div class="header-row">
+        <h1>Porra Mundial 2026 · preview</h1>
+        <div class="header-actions">
+          <button class="teams-open" type="button" aria-haspopup="dialog"><svg class="ti" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.2" y="3" width="11.6" height="10" rx="1.6"/><line x1="2.2" y1="6.6" x2="13.8" y2="6.6"/><line x1="7" y1="6.6" x2="7" y2="13"/></svg><span class="rules-label">Puntos por selección</span></button>
+          <button class="rules-open" type="button" aria-haspopup="dialog"><span class="ri">i</span><span class="rules-label">Reglas de puntuación</span></button>
+        </div>
+      </div>
       <div class="sub">Estados de la web para revisión · Actualizado: <span id="updated">—</span></div>
       <div class="pv-note">Previsualización con datos de ejemplo (no reales). Cada botón muestra un estado distinto de la página.</div>
       <div class="pv-bar">${buttons}</div>
