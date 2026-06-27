@@ -45,9 +45,9 @@ check("España.knockout", table.get("España").knockoutPoints + table.get("Espa�
 check("España.total", table.get("España").total, 34);
 
 // Portugal, grupo E: solo ha jugado la J1 (gana 2-0 a Bosnia -> 3+2 = 5). Su
-// grupo NO está completo, así que NO recibe el +3 de avance aunque aparezca en
-// la ronda de 32 (regresión: la API a veces lo coloca pronto en el cuadro).
-// Total = 5. Cuando el grupo E se cierre, sumará el +3.
+// grupo NO está completo, así que NO recibe el +3 de avance aunque sea 1.º de su
+// grupo y aparezca en la ronda de 32 (la API a veces lo coloca pronto en el
+// cuadro). Total = 5. Cuando el grupo E se cierre, sumará el +3.
 check("Portugal.total", table.get("Portugal").total, 5);
 
 // Catar: grupo A completo. 1-1(D)=1 ; 0-2(L)=-2 ; 1-1(D)=1 -> liguilla 0.
@@ -55,7 +55,8 @@ check("Portugal.total", table.get("Portugal").total, 5);
 check("Catar.total", table.get("Catar").total, 0);
 
 // Sudáfrica: 0-3(L,-3)=-3 ; 2-0(W,+3)=3+2=5 ; 2-2(D,0)=1 -> liguilla 3.
-//  Clasifica (aparece en ronda de 32 programada) -> +3. Total 6.
+//  2.ª del grupo A (que está completo) -> +3 de avance al instante, sin esperar
+//  al cuadro de eliminatorias. Total 6.
 check("Sudáfrica.total", table.get("Sudáfrica").total, 6);
 
 console.log("\n— Clasificación —");

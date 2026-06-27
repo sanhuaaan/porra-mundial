@@ -93,33 +93,41 @@ function compute(data: Data): Map<string, TeamBreakdown> {
     }
   }
 
-  // Completitud de cada grupo: TODOS sus partidos terminados. NINGÚN bonus de
-  // grupo (avance +3, máximo goleador, menos goleado) se reparte hasta que el
-  // grupo del equipo esté cerrado. Evita que un equipo sume el +3 si la API ya
-  // lo coloca en el cuadro de eliminatorias antes de cerrarse su grupo (cosa que
-  // hace de forma intermitente entre actualizaciones).
-  const teamGroup = new Map<string, string>();
+  // Completitud de cada grupo: TODOS sus partidos terminados. Ningún bonus de
+  // grupo (avance, máximo goleador, menos goleado) se reparte hasta que el grupo
+  // esté cerrado.
   const groupComplete = new Map<string, boolean>();
   for (const [group, teams] of Object.entries(data.groups)) {
-    for (const team of teams) teamGroup.set(team, group);
     const gms = data.matches.filter((m) => m.phase === "groups" && m.group === group);
     // Liga de todos contra todos: n equipos -> n*(n-1)/2 partidos.
     const expected = (teams.length * (teams.length - 1)) / 2;
     const finished = gms.filter((m) => m.status === "FINISHED").length;
     groupComplete.set(group, teams.length > 0 && finished >= expected && gms.every((m) => m.status === "FINISHED"));
   }
+  const allGroupsComplete =
+    Object.keys(data.groups).length > 0 && Object.keys(data.groups).every((g) => groupComplete.get(g));
 
-  // 2) +3 a los que pasan de ronda = los que aparecen en cualquier eliminatoria,
-  //    pero SÓLO una vez que su grupo está cerrado.
-  const qualified = new Set<string>();
-  for (const m of data.matches) {
-    if (m.phase === "groups") continue;
-    if (m.home) qualified.add(m.home);
-    if (m.away) qualified.add(m.away);
+  // 2) +3 de avance, por dos vías:
+  //   (a) Los 2 primeros de cada grupo, en cuanto SU grupo se cierra. data.groups
+  //       viene en el orden de clasificación oficial de la API, así que teams[0] y
+  //       teams[1] son los dos que pasan con certeza (no hay que recalcular nada).
+  //   (b) Los 8 mejores terceros no se pueden conocer hasta comparar los 12 grupos,
+  //       así que se toman del cuadro de eliminatorias UNA VEZ todos completos (eso
+  //       evita además el +3 prematuro si la API puebla el cuadro antes de tiempo).
+  const advanced = new Set<string>();
+  for (const [group, teams] of Object.entries(data.groups)) {
+    if (!groupComplete.get(group)) continue;
+    if (teams[0]) advanced.add(teams[0]);
+    if (teams[1]) advanced.add(teams[1]);
   }
-  for (const team of qualified) {
-    const group = teamGroup.get(team);
-    if (!group || !groupComplete.get(group)) continue; // su grupo aún no ha terminado
+  if (allGroupsComplete) {
+    for (const m of data.matches) {
+      if (m.phase === "groups") continue;
+      if (m.home) advanced.add(m.home);
+      if (m.away) advanced.add(m.away);
+    }
+  }
+  for (const team of advanced) {
     const t = get(team);
     t.bAdvance += P.groupBonus.advance;
     t.lines.push({
