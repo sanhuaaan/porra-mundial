@@ -478,6 +478,42 @@ El motor está listo (matriz de simulaciones + carteras en `CONFIG.participants`
 algún día se conocen los rosters antes de empezar, es un `optimize.mjs` con el
 objetivo cambiado a `P(máximo de los rivales < tú)`.
 
+---
+
+# Idea A — descanso y viajes *(NO implementada: hallazgo)*
+
+La hipótesis: en un Mundial jugado en **un continente entero** (2026: USA/Canadá/
+México, ~5000 km, 4 husos), las asimetrías de **descanso** y **viaje** entre rivales
+darían una ventaja estructural (como la de local, que sí funcionó). Al mirar el
+calendario real (`data.js` trae fechas) el hallazgo mata media idea:
+
+**El descanso lo equilibra la FIFA.** Asimetría de descanso *dentro* de cada partido
+de dieciseisavos (ventaja de un equipo sobre su rival):
+
+| Diferencia de descanso | Nº de partidos R32 |
+|---|---:|
+| 0 días | 6 |
+| 1 día | 9 |
+| ≥2 días | 1 (de 16) |
+
+El descanso *absoluto* varía (4-8 días), pero la FIFA programa a **los dos rivales
+con casi el mismo** (0-1 día en 15 de 16 partidos) → **no hay ventaja relativa que
+explotar**. Modelar el descanso daría ~cero, y no por la varianza sino porque **el
+dato no tiene asimetría**.
+
+**Solo el viaje queda vivo** — la FIFA iguala días de descanso, no kilómetros: dos
+rivales pueden llegar con el mismo descanso pero muy distinta fatiga de viaje. Pero:
+- `data.js` **no trae sedes** (solo fechas) → habría que obtener el mapeo
+  partido→sede de fuera (~100 partidos) + coordenadas de las 16 ciudades.
+- Por magnitud es un efecto **pequeño** (~0.1-0.3 goles/partido, un orden por debajo
+  del +100 Elo del local), así que muy probablemente sería otro cambio de realizado
+  **nulo**, coherente con todos los refinamientos.
+
+**Decisión:** no se implementa. Descanso confirmado inútil (sin asimetría); viaje =
+señal menor que exige datos externos. Queda como hallazgo: en 2026 la geografía
+importa menos de lo que parece porque la FIFA reparte el descanso, y el resto (viaje)
+es de magnitud refinamiento.
+
 ## Uso
 
 ```bash
