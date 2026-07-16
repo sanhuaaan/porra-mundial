@@ -445,6 +445,39 @@ esa sí se respeta.
 realizado idénticos (**148**). Un refinamiento más que se pierde en la varianza; su
 valor es de **corrección**, no de resultado.
 
+---
+
+# Idea #4 — optimizar `P(ganar la porra)` *(NO implementada)*
+
+Todo lo anterior maximiza **tus** puntos. Pero la porra no se gana puntuando mucho,
+sino **puntuando más que los otros 6**. El objetivo correcto sería relativo:
+
+> maximizar `P(tu total > el de los otros 6) = P(quedar 1.º)`
+
+**Por qué sería potente:**
+- Premia la **diferenciación**, no los puntos. Si todo el campo tiene España y Corea
+  Sur (en esta porra, *los 7* participantes tienen Corea Sur), tenerlos tú no te
+  despega de la manada. Para ganar necesitas exposición **distinta** al campo.
+- Invierte la lógica del riesgo: de **líder** te cubres (te pareces al campo); de
+  **tapado** te la juegas (anti-correlación con el campo, billete de lotería que
+  paga cuando el favorito falla). El único sitio donde la correlación *entre
+  carteras* decide quién gana.
+
+**Por qué NO se implementa (limitación de fondo):** el objetivo necesita las
+**carteras de los otros 6**, y **antes de que empiece la competición no las
+conoces** — cada uno entrega en secreto. Sin el campo, `P(ganar)` no es calculable
+*a priori*. Solo sería viable:
+- **retrospectivamente** (como análisis a toro pasado, no como predicción), o
+- si la porra **revela las apuestas antes del pitido inicial** (ventaja de último en
+  entregar: ves el campo y optimizas tu respuesta), o
+- con un **modelo especulativo del campo** (asumir que todos juegan cerca del óptimo
+  y diferenciarte de esa cartera-consenso) — pero eso es inventarse a los rivales.
+
+En esta porra las apuestas no se conocen de antemano, así que se queda como idea.
+El motor está listo (matriz de simulaciones + carteras en `CONFIG.participants`): si
+algún día se conocen los rosters antes de empezar, es un `optimize.mjs` con el
+objetivo cambiado a `P(máximo de los rivales < tú)`.
+
 ## Uso
 
 ```bash
