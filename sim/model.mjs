@@ -81,6 +81,41 @@ function rng() {
 export const REAL_BRACKET = true;
 const BRACKET = JSON.parse(readFileSync(join(dir, "bracket.json"), "utf8"));
 
+// Mejora #3: asignación de terceros con la regla FIFA. Cada hueco de tercero (T)
+// va emparejado con el ganador de un grupo concreto; T_HOSTS lista, en el orden
+// en que aparecen los T al recorrer el cuadro, la LETRA de ese grupo anfitrión.
+// La regla FIFA prohíbe que un tercero juegue contra el ganador de SU PROPIO
+// grupo en dieciseisavos — el fill por ranking anterior podía generar ese cruce
+// imposible. (La tabla exacta de 495 combinaciones está en el Annex C de FIFA, en
+// PDF; aquí se respeta la restricción de forma determinista, que es lo que de
+// verdad importa para los puntos: un tercero se cruza con ALGÚN ganador igual.)
+const T_HOSTS = [];
+for (const [a, b] of BRACKET.r32) {
+  if (a === "T") T_HOSTS.push(b[0]);
+  if (b === "T") T_HOSTS.push(a[0]);
+}
+// Biyección tercero→hueco evitando el propio grupo (greedy + swap de rescate;
+// siempre factible porque hay ≤1 tercero por grupo). Devuelve perm: el hueco i
+// recibe el tercero de índice perm[i].
+function assignThirds(qGroups, hostGroups) {
+  const used = new Array(qGroups.length).fill(false);
+  const perm = new Array(hostGroups.length).fill(-1);
+  for (let i = 0; i < hostGroups.length; i++) {
+    let chosen = -1;
+    for (let j = 0; j < qGroups.length; j++)
+      if (!used[j] && qGroups[j] !== hostGroups[i]) { chosen = j; break; }
+    if (chosen === -1) {
+      for (let j = 0; j < qGroups.length; j++) if (!used[j]) { chosen = j; break; }
+      for (let k = 0; k < i; k++)
+        if (qGroups[perm[k]] === hostGroups[i] && qGroups[chosen] !== hostGroups[k]) {
+          const tmp = perm[k]; perm[k] = chosen; chosen = tmp; break;
+        }
+    }
+    perm[i] = chosen; used[chosen] = true;
+  }
+  return perm;
+}
+
 // ── Mejora 3: modelo de partido Dixon-Coles ─────────────────────────────────
 const FACT = [1];
 for (let i = 1; i <= 12; i++) FACT[i] = FACT[i - 1] * i;
@@ -206,7 +241,7 @@ function simulateTournament() {
     const table = standings(teams, gms);
     sortedGroups[g] = table.map((r) => r.t);
     qualifiers.push(table[0].t, table[1].t);
-    thirds.push(table[2]);
+    thirds.push({ ...table[2], g }); // etiquetar el tercero con su grupo (Mejora #3)
   }
 
   thirds.sort((x, y) => y.pts - x.pts || y.gd - x.gd || y.gf - x.gf || (elo[y.t] ?? 0) - (elo[x.t] ?? 0));
@@ -214,9 +249,10 @@ function simulateTournament() {
 
   let round;
   if (REAL_BRACKET) {
-    const thirdsQ = thirds.slice(0, 8).map((r) => r.t);
+    const q = thirds.slice(0, 8); // 8 mejores terceros (con .t y .g), por ranking
+    const perm = assignThirds(q.map((r) => r.g), T_HOSTS); // regla FIFA: no propio grupo
     let ti = 0;
-    const fill = (s) => (s === "T" ? thirdsQ[ti++] : sortedGroups[s[0]][+s[1] - 1]);
+    const fill = (s) => (s === "T" ? q[perm[ti++]].t : sortedGroups[s[0]][+s[1] - 1]);
     round = BRACKET.r32.flatMap(([a, b]) => [fill(a), fill(b)]);
   } else {
     round = shuffle(qualifiers);

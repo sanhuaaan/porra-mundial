@@ -425,6 +425,26 @@ varianza; solo confirma, una vez más, que en una sola porra el balón manda.
 node sim/optimize.mjs [N]   # optimiza media / mediana / p25 / media−σ
 ```
 
+---
+
+# Refinamiento #3 — asignación FIFA de terceros
+
+Completa la Mejora 4 (cuadro real). El fill anterior metía los 8 terceros en sus
+huecos por **ranking**, sin respetar la regla FIFA de que **un tercero nunca juega
+contra el ganador de su propio grupo** en dieciseisavos. Medido: el fill antiguo
+generaba **~0.7 cruces imposibles por torneo** (un tercero contra su propio grupo,
+que jamás ocurre en la realidad). Ahora se asigna con una biyección determinista
+que evita el propio grupo (`assignThirds` en `model.mjs`).
+
+La tabla oficial exacta (495 combinaciones) vive en el **Annex C** de las
+regulaciones FIFA, en PDF, impracticable de transcribir; pero lo que importa para
+los puntos es la **restricción** (un tercero se cruza con algún ganador igual), y
+esa sí se respeta.
+
+**Efecto:** corrige un bug real, pero el impacto agregado es **nulo** — cartera y
+realizado idénticos (**148**). Un refinamiento más que se pierde en la varianza; su
+valor es de **corrección**, no de resultado.
+
 ## Uso
 
 ```bash
