@@ -253,11 +253,56 @@ Elo acertó *esta vez*, y el 0.5 pilla lo peor de ambos (mete Portugal, que sac�
 sola edición vuelve a mandar la varianza. Se deja implementada con `BLEND_W=0.5`;
 subirlo hacia 1 tira más del Elo.
 
-## Mejora 3 — Modelo de partido calibrado *(pendiente)*
+## Mejora 3 — Modelo de partido calibrado *(implementada)*
 
-Sustituir los dos Poisson independientes (subestiman empates) por **Dixon-Coles**,
-y **ajustar** `BASE` y el divisor `800` contra partidos internacionales históricos
-en vez de fijarlos a ojo.
+Dos cambios en `sim/simulate.mjs`:
+
+1. **Dixon-Coles** en vez de dos Poisson independientes. El Poisson independiente
+   **subestima los empates**; DC corrige las cuatro celdas de marcador bajo con un
+   parámetro `RHO=-0.13` (valor del paper de 1997). Se muestrea el marcador de la
+   rejilla conjunta. Efecto medible: en un partido igualado (Δ=0) la probabilidad
+   de empate sube de **25.8 % → 29 %**, que es la tasa real del fútbol
+   internacional (~28-29 %).
+2. **Divisor calibrado**, no a ojo. El `800` inventado se sustituye por un `DIV`
+   que se **busca** al arrancar: el que hace que el resultado esperado del modelo
+   (`P(gana) + ½·P(empate)`) reproduzca la curva de expectativa Elo estándar
+   `We(Δ)=1/(1+10^(−Δ/400))`. Sale **DIV≈1060**. El 800 era demasiado agresivo:
+   inflaba el marcador de los favoritos (España pasa de 78 → 66 pts esperados, más
+   realista). Ajuste modelo↔Elo casi perfecto:
+
+   | Δ Elo | modelo | We(Δ) |
+   |---:|---:|---:|
+   | 80 | 0.6 | 0.6 |
+   | 160 | 0.7 | 0.7 |
+   | 240 | 0.8 | 0.8 |
+   | 320 | 0.9 | 0.9 |
+
+**Resultado:** el modelo queda **más realista** (empates correctos, favoritos sin
+inflar), pero la cartera óptima a `w=0.5` **no cambia** — mismas 7 selecciones,
+**133 pts reales (66 %)**. Refinar las probabilidades afina los puntos esperados,
+pero ni la decisión (knapsack sobre 9 tramos de coste) ni el resultado realizado
+(dominado por varianza) se mueven.
+
+*(`BASE=1.35` se deja fijo: es la media internacional real ~2.7 goles/partido ÷ 2,
+no un número inventado. La rejilla DC hace la simulación ~3× más lenta: ~35 s para
+20.000, aceptable.)*
+
+---
+
+# Síntesis: las tres mejoras
+
+| Mejora | Qué corrige | ¿Cambia el realizado? |
+|---|---|---|
+| **1. Ventaja de local** | Sesgo real (anfitriones infravalorados) | **Sí: 52 → 75 %** |
+| 2. Odds de casas | Elo caduco ignora forma/lesiones | No (66-75 %, ruido) |
+| 3. Dixon-Coles + calibrar | Empates y decisividad irreales | No (misma cartera) |
+
+La lección de las tres juntas: **solo la mejora que corrige un sesgo sistemático
+(local) mueve el resultado**. Las que refinan la *precisión* del modelo (odds,
+Dixon-Coles) lo hacen más honesto y mejor calibrado —lo correcto de cara a muchos
+torneos— pero en **una sola edición** el techo lo pone la varianza, no la
+sofisticación del modelo. Mejor modelo ≠ mejor porra concreta; sí mejor apuesta
+media.
 
 ## Comparativa de escenarios (actualizada)
 

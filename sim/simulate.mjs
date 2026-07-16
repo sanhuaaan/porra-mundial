@@ -99,12 +99,33 @@ function rng() {
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 }
 
-// Goles Poisson (Knuth) a partir de la media λ.
-function poisson(lambda) {
-  const L = Math.exp(-lambda);
-  let k = 0, p = 1;
-  do { k++; p *= rng(); } while (p > L);
-  return k - 1;
+// ── Mejora 3: modelo de partido Dixon-Coles ─────────────────────────────────
+// Dos Poisson independientes SUBESTIMAN los empates (y los marcadores bajos
+// correlacionados 0-0/1-1). Dixon-Coles (1997) corrige justo las cuatro celdas
+// bajas con un parámetro ρ. Muestreamos del pmf conjunto sobre una rejilla.
+const FACT = [1];
+for (let i = 1; i <= 12; i++) FACT[i] = FACT[i - 1] * i;
+const poisPmf = (k, l) => (Math.exp(-l) * l ** k) / FACT[k];
+const RHO = -0.13; // valor del paper de Dixon-Coles; ρ<0 sube 0-0/1-1 (empates)
+const MAXG = 8;    // goles máximos por equipo en la rejilla (cola despreciable)
+const tau = (x, y, l, m) =>
+  x === 0 && y === 0 ? 1 - l * m * RHO
+  : x === 0 && y === 1 ? 1 + l * RHO
+  : x === 1 && y === 0 ? 1 + m * RHO
+  : x === 1 && y === 1 ? 1 - RHO
+  : 1;
+// Rejilla (MAXG+1)² de probabilidades conjuntas, corregida y normalizada.
+function dcGrid(l, m) {
+  const g = [];
+  let s = 0;
+  for (let x = 0; x <= MAXG; x++)
+    for (let y = 0; y <= MAXG; y++) {
+      const p = poisPmf(x, l) * poisPmf(y, m) * tau(x, y, l, m);
+      g.push([x, y, p]);
+      s += p;
+    }
+  for (const c of g) c[2] /= s;
+  return g;
 }
 
 // Ventaja de local: el Mundial 2026 lo organizan EEUU, Canadá y México, que
@@ -117,13 +138,38 @@ const HOSTS = new Set(["Estados Unidos", "Canadá", "México"]);
 const HOST_ELO = 100;
 const eff = (t) => (rating[t] ?? elo[t] ?? 1600) + (HOSTS.has(t) ? HOST_ELO : 0);
 
-// Medias de goles de cada equipo según la diferencia de Elo EFECTIVO. BASE ≈
-// goles medios de una selección por partido; el factor 10^(dif/800) inclina el
-// marcador hacia el más fuerte. BASE y el divisor son knobs de calibración.
+// BASE ≈ goles medios de una selección en un partido igualado (media
+// internacional ~2.7 goles/partido → ~1.35 por lado). El divisor DIV controla
+// cuánto inclina la diferencia de Elo el marcador; en vez de fijarlo a ojo se
+// CALIBRA: se busca el DIV con el que el resultado esperado del modelo
+// (P(gana) + ½·P(empate)) reproduce la curva de expectativa Elo estándar
+// We(Δ)=1/(1+10^(−Δ/400)) sobre un rango de diferencias. Así el modelo de goles
+// queda anclado a la definición del propio Elo, no a un número inventado.
 const BASE = 1.35;
+const We = (d) => 1 / (1 + 10 ** (-d / 400));
+function expScore(d, div) {
+  const l = BASE * 10 ** (d / div), m = BASE * 10 ** (-d / div);
+  let pW = 0, pD = 0;
+  for (const [x, y, p] of dcGrid(l, m)) { if (x > y) pW += p; else if (x === y) pD += p; }
+  return pW + 0.5 * pD;
+}
+const DIV = (() => {
+  let best = 800, bestErr = Infinity;
+  for (let div = 300; div <= 1400; div += 10) {
+    let err = 0;
+    for (let d = 40; d <= 440; d += 40) err += (expScore(d, div) - We(d)) ** 2;
+    if (err < bestErr) { bestErr = err; best = div; }
+  }
+  return best;
+})();
+// Muestrea un marcador de la rejilla Dixon-Coles según el Elo efectivo.
 function goals(a, b) {
   const d = eff(a) - eff(b);
-  return [poisson(BASE * 10 ** (d / 800)), poisson(BASE * 10 ** (-d / 800))];
+  const g = dcGrid(BASE * 10 ** (d / DIV), BASE * 10 ** (-d / DIV));
+  let r = rng(), acc = 0;
+  for (const [x, y, p] of g) { acc += p; if (r <= acc) return [x, y]; }
+  const last = g[g.length - 1];
+  return [last[0], last[1]];
 }
 // Probabilidad de que A gane unos penaltis (moneda ponderada por Elo efectivo).
 function shootout(a, b) {
@@ -250,7 +296,7 @@ for (let k = 7; k <= MAXN; k++)
 
 // ── Salida ─────────────────────────────────────────────────────────────────
 const fmt = (x) => round1(x).toString().padStart(6);
-console.log(`\nMonte Carlo pre-torneo · ${N.toLocaleString("es")} simulaciones · blend Elo/odds w=${BLEND_W} + local +${HOST_ELO} (${[...HOSTS].join(", ")})\n`);
+console.log(`\nMonte Carlo pre-torneo · ${N.toLocaleString("es")} simulaciones · Dixon-Coles (ρ=${RHO}, DIV calibrado=${DIV}) · blend Elo/odds w=${BLEND_W} + local +${HOST_ELO} (${[...HOSTS].join(", ")})\n`);
 console.log("CARTERA ÓPTIMA ESPERADA (36 M€, ≥7 sels, sin 9 M€)");
 console.log(`  puntos esperados: ${round1(best.s)}  ·  coste: ${best.w} M€  ·  ${best.n} selecciones\n`);
 best.pick
