@@ -67,17 +67,28 @@ function poisson(lambda) {
   do { k++; p *= rng(); } while (p > L);
   return k - 1;
 }
-// Medias de goles de cada equipo según la diferencia de Elo. BASE ≈ goles medios
-// de una selección por partido; el factor 10^(dif/800) inclina el marcador hacia
-// el más fuerte. Ambas constantes son knobs de calibración (aprox., ajustables).
+
+// Ventaja de local: el Mundial 2026 lo organizan EEUU, Canadá y México, que
+// juegan todo el torneo «en casa» (afición, sin viajes largos, condiciones
+// conocidas). eloratings.net suma 100 de Elo al local en cada partido; como los
+// anfitriones son locales SIEMPRE, aplicamos ese mismo +100 a sus tres carreras.
+// HOST_ELO es un knob de calibración: subirlo/bajarlo modela más/menos efecto
+// local (0 = desactivado). Si dos anfitriones se cruzan, el boost se cancela.
+const HOSTS = new Set(["Estados Unidos", "Canadá", "México"]);
+const HOST_ELO = 100;
+const eff = (t) => (elo[t] ?? 1600) + (HOSTS.has(t) ? HOST_ELO : 0);
+
+// Medias de goles de cada equipo según la diferencia de Elo EFECTIVO. BASE ≈
+// goles medios de una selección por partido; el factor 10^(dif/800) inclina el
+// marcador hacia el más fuerte. BASE y el divisor son knobs de calibración.
 const BASE = 1.35;
 function goals(a, b) {
-  const d = (elo[a] ?? 1600) - (elo[b] ?? 1600);
+  const d = eff(a) - eff(b);
   return [poisson(BASE * 10 ** (d / 800)), poisson(BASE * 10 ** (-d / 800))];
 }
-// Probabilidad de que A gane unos penaltis (moneda ponderada por Elo).
+// Probabilidad de que A gane unos penaltis (moneda ponderada por Elo efectivo).
 function shootout(a, b) {
-  const pa = 1 / (1 + 10 ** (((elo[b] ?? 1600) - (elo[a] ?? 1600)) / 400));
+  const pa = 1 / (1 + 10 ** ((eff(b) - eff(a)) / 400));
   return rng() < pa ? a : b;
 }
 
@@ -200,7 +211,7 @@ for (let k = 7; k <= MAXN; k++)
 
 // ── Salida ─────────────────────────────────────────────────────────────────
 const fmt = (x) => round1(x).toString().padStart(6);
-console.log(`\nMonte Carlo pre-torneo · ${N.toLocaleString("es")} simulaciones · Elo eloratings.net (cierre 2025)\n`);
+console.log(`\nMonte Carlo pre-torneo · ${N.toLocaleString("es")} simulaciones · Elo eloratings.net (cierre 2025) + local +${HOST_ELO} (${[...HOSTS].join(", ")})\n`);
 console.log("CARTERA ÓPTIMA ESPERADA (36 M€, ≥7 sels, sin 9 M€)");
 console.log(`  puntos esperados: ${round1(best.s)}  ·  coste: ${best.w} M€  ·  ${best.n} selecciones\n`);
 best.pick

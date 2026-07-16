@@ -187,6 +187,60 @@ Francia o Inglaterra.
   favoritos») en un ejercicio real de buscar valor infravalorado, que es donde de
   verdad se gana o se pierde la porra.
 
+---
+
+# Mejoras del modelo
+
+## Mejora 1 — Ventaja de local *(implementada)*
+
+El Mundial 2026 lo organizan **EEUU, Canadá y México**, que juegan todo el torneo
+en casa. El Elo puro los infravaloraba: en la realidad **sobrerrindieron**
+(México 38, Canadá 28, USA 27). Se añade un **boost de +100 de Elo** a los tres
+anfitriones en cada partido (`HOST_ELO` en `sim/simulate.mjs`, knob ajustable;
+mismo +100 que eloratings.net da al local, aquí permanente porque siempre juegan
+en casa). No toca `ratings.json` — la fuerza cruda queda separada del efecto
+local.
+
+**Efecto (Elo reales, con veto de 9 M€):** el modelo ahora incorpora a México y
+Canadá y sube del **52 % al 75 %** del techo realizado.
+
+| Selección | Coste | Pts esperados |
+|---|---:|---:|
+| Brasil | 8 M | 40.9 |
+| México | 6 M | 36.7 |
+| Ecuador | 5 M | 35.4 |
+| Canadá | 5 M | 33.2 |
+| Suiza | 6 M | 32.0 |
+| Irán | 3 M | 15.4 |
+| Corea Sur | 3 M | 14.0 |
+| **Total** | **36 M** | **207.7** |
+
+Puntos **reales** de esta cartera: **151** (75 % del techo de 201), frente a los
+105 (52 %) sin el boost. El sesgo de local era sistemático y corregible — justo el
+tipo de error que un modelo sí puede arreglar (a diferencia de las sorpresas puras).
+
+## Mejora 2 — Fuerza desde odds de casas *(pendiente)*
+
+Blend Elo + probabilidades implícitas de casas de apuestas (ganador + «pasa de
+grupos»), sin margen. Capturan lesiones, forma y repescas que el Elo de cierre
+2025 ignora.
+
+## Mejora 3 — Modelo de partido calibrado *(pendiente)*
+
+Sustituir los dos Poisson independientes (subestiman empates) por **Dixon-Coles**,
+y **ajustar** `BASE` y el divisor `800` contra partidos internacionales históricos
+en vez de fijarlos a ojo.
+
+## Comparativa de escenarios (actualizada)
+
+| Escenario | Pts esperados | Pts reales | % del techo |
+|---|---:|---:|---:|
+| Elo reales, SIN veto | 264.7 | 195 | 97 % |
+| **Elo reales + local, CON veto** | 207.7 | **151** | **75 %** |
+| Elo reales, CON veto | 200.4 | 105 | 52 % |
+| Elo a ojo, CON veto | 180 | 141 | 70 % |
+| Óptima a posteriori | — | 201 | 100 % |
+
 ## Uso
 
 ```bash
