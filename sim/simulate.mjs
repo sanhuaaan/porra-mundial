@@ -99,6 +99,15 @@ function rng() {
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 }
 
+// ── Mejora 4: cuadro real ───────────────────────────────────────────────────
+// En vez de repartir los 32 clasificados al azar cada simulación, se usa la
+// plantilla del cruce REAL del Mundial (bracket.json, extraída de data.js por
+// posición de grupo). Winners/segundos van a su slot exacto; los 8 huecos de
+// tercero se rellenan por ranking (aprox., porque en cada sim clasifican
+// terceros de grupos distintos). REAL_BRACKET=false vuelve al sorteo aleatorio.
+const REAL_BRACKET = true;
+const BRACKET = JSON.parse(readFileSync(join(dir, "bracket.json"), "utf8"));
+
 // ── Mejora 3: modelo de partido Dixon-Coles ─────────────────────────────────
 // Dos Poisson independientes SUBESTIMAN los empates (y los marcadores bajos
 // correlacionados 0-0/1-1). Dixon-Coles (1997) corrige justo las cuatro celdas
@@ -162,10 +171,22 @@ const DIV = (() => {
   }
   return best;
 })();
-// Muestrea un marcador de la rejilla Dixon-Coles según el Elo efectivo.
+// ── Mejora 5: estilo ataque/defensa ─────────────────────────────────────────
+// Un solo Elo colapsa ataque y defensa en un número. Aquí cada equipo lleva un
+// sesgo de estilo (strength-neutral, de sim/style.json): atk = marca más de lo
+// que su fuerza predice; def = encaja menos. La media de goles de A se multiplica
+// por exp(STYLE·(atk_A − def_B)). No cambia quién gana (los sesgos promedian ~0),
+// pero sí la DISTRIBUCIÓN de goles → afecta a los bonus de máximo goleador, menos
+// goleado y golaveraje. STYLE=0 lo desactiva. Ojo: GF/GA de eloratings es de todos
+// los tiempos (proxy grueso); lo ideal sería un att/def ajustado a forma reciente.
+const STYLE = 0.1;
+const { style } = JSON.parse(readFileSync(join(dir, "style.json"), "utf8"));
+const tilt = (x, opp) => Math.exp(STYLE * ((style[x]?.atk ?? 0) - (style[opp]?.def ?? 0)));
+
+// Muestrea un marcador de la rejilla Dixon-Coles según el Elo efectivo y el estilo.
 function goals(a, b) {
   const d = eff(a) - eff(b);
-  const g = dcGrid(BASE * 10 ** (d / DIV), BASE * 10 ** (-d / DIV));
+  const g = dcGrid(BASE * 10 ** (d / DIV) * tilt(a, b), BASE * 10 ** (-d / DIV) * tilt(b, a));
   let r = rng(), acc = 0;
   for (const [x, y, p] of g) { acc += p; if (r <= acc) return [x, y]; }
   const last = g[g.length - 1];
@@ -245,10 +266,18 @@ function simulateTournament() {
   thirds.sort((x, y) => y.pts - x.pts || y.gd - x.gd || y.gf - x.gf || (elo[y.t] ?? 0) - (elo[x.t] ?? 0));
   qualifiers.push(...thirds.slice(0, 8).map((r) => r.t));
 
-  // Cuadro: reparto ALEATORIO de los 32 en los huecos (simplificación — el
-  // Mundial real tiene un cruce fijo por posición de grupo; al promediar sobre N
-  // sorteos la dificultad esperada sale insesgada).
-  let round = shuffle(qualifiers);
+  // Cuadro: real (Mejora 4) o sorteo aleatorio. En el real, cada slot lo fija la
+  // posición de grupo (X1=ganador, X2=segundo); los 8 huecos de tercero (T) se
+  // rellenan con los mejores terceros por ranking.
+  let round;
+  if (REAL_BRACKET) {
+    const thirdsQ = thirds.slice(0, 8).map((r) => r.t);
+    let ti = 0;
+    const fill = (s) => (s === "T" ? thirdsQ[ti++] : sortedGroups[s[0]][+s[1] - 1]);
+    round = BRACKET.r32.flatMap(([a, b]) => [fill(a), fill(b)]);
+  } else {
+    round = shuffle(qualifiers);
+  }
   for (const phase of ["round_of_32", "round_of_16", "quarter_finals"]) {
     const { matches: ms, winners } = playRound(round, phase);
     matches.push(...ms);
@@ -296,7 +325,7 @@ for (let k = 7; k <= MAXN; k++)
 
 // ── Salida ─────────────────────────────────────────────────────────────────
 const fmt = (x) => round1(x).toString().padStart(6);
-console.log(`\nMonte Carlo pre-torneo · ${N.toLocaleString("es")} simulaciones · Dixon-Coles (ρ=${RHO}, DIV calibrado=${DIV}) · blend Elo/odds w=${BLEND_W} + local +${HOST_ELO} (${[...HOSTS].join(", ")})\n`);
+console.log(`\nMonte Carlo pre-torneo · ${N.toLocaleString("es")} simulaciones · ${REAL_BRACKET ? "cuadro REAL" : "sorteo aleatorio"} · Dixon-Coles (ρ=${RHO}, DIV=${DIV}) · estilo atk/def (STYLE=${STYLE}) · blend Elo/odds w=${BLEND_W} + local +${HOST_ELO}\n`);
 console.log("CARTERA ÓPTIMA ESPERADA (36 M€, ≥7 sels, sin 9 M€)");
 console.log(`  puntos esperados: ${round1(best.s)}  ·  coste: ${best.w} M€  ·  ${best.n} selecciones\n`);
 best.pick

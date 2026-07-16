@@ -287,38 +287,74 @@ pero ni la decisión (knapsack sobre 9 tramos de coste) ni el resultado realizad
 no un número inventado. La rejilla DC hace la simulación ~3× más lenta: ~35 s para
 20.000, aceptable.)*
 
+## Mejora 4 — Cuadro real *(implementada)*
+
+En vez de repartir los 32 clasificados **al azar** cada simulación, se usa la
+plantilla del **cruce real** del Mundial (`sim/bracket.json`, extraída de `data.js`
+por posición de grupo y reconstruida en orden de árbol). Cada slot lo fija la
+posición (ganador/segundo de cada grupo, **exactos**); los 8 huecos de tercero se
+rellenan por ranking (aprox.: en cada simulación clasifican terceros de grupos
+distintos). Knob `REAL_BRACKET`.
+
+**Efecto (con veto): 133 → 154 pts reales (66 % → 77 %)** — el mejor resultado con
+restricción. El cuadro fija quién se cruza con quién: **Suiza (35) y USA (27)**
+tenían caminos favorables que el sorteo aleatorio promediaba y por eso
+infravaloraba. Como la ventaja de local, es un cambio **estructural**, y los
+estructurales sí mueven la aguja.
+
+## Mejora 5 — Estilo ataque/defensa *(implementada)*
+
+Un solo Elo colapsa ataque y defensa. Cada equipo lleva ahora un sesgo de estilo
+**strength-neutral** (`sim/style.json`): `atk` = marca más de lo que su fuerza
+predice, `def` = encaja menos (residuos de `log(GF|GA por partido) ~ Elo`; fuente
+GF/GA: eloratings.net, todos los tiempos). La media de goles se multiplica por
+`exp(STYLE·(atk_A − def_B))`. No cambia quién gana (los sesgos promedian 0), pero sí
+la **distribución de goles** → afecta a los bonus de goleador/menos goleado/GD.
+Caras plausibles: Alemania/Inglaterra atacantes, Irán/Marruecos defensivos.
+
+**Efecto (con veto): 154 → 148 pts reales (77 % → 74 %)** — bajó. El tilt subió el
+bonus esperado de atacantes/defensivos modestos (entra Australia, sale Suiza). Es
+un **refinamiento**, y como los otros refinamientos, se pierde en la varianza (y
+con un proxy de estilo de *todos los tiempos*, poca señal). Se deja con `STYLE=0.1`;
+0 lo desactiva.
+
 ---
 
-# Síntesis: las tres mejoras
+# Síntesis: las cinco mejoras
 
-| Mejora | Qué corrige | ¿Cambia el realizado? |
+| Mejora | Tipo | ¿Cambia el realizado? |
 |---|---|---|
-| **1. Ventaja de local** | Sesgo real (anfitriones infravalorados) | **Sí: 52 → 75 %** |
-| 2. Odds de casas | Elo caduco ignora forma/lesiones | No (66-75 %, ruido) |
-| 3. Dixon-Coles + calibrar | Empates y decisividad irreales | No (misma cartera) |
+| **1. Ventaja de local** | **Estructural** | **Sí: 52 → 75 %** |
+| 2. Odds de casas | Refinamiento | No (ruido) |
+| 3. Dixon-Coles + calibrar | Refinamiento | No |
+| **4. Cuadro real** | **Estructural** | **Sí: 66 → 77 %** |
+| 5. Estilo ataque/defensa | Refinamiento | No (74 %, baja algo) |
 
-La lección de las tres juntas: **solo la mejora que corrige un sesgo sistemático
-(local) mueve el resultado**. Las que refinan la *precisión* del modelo (odds,
-Dixon-Coles) lo hacen más honesto y mejor calibrado —lo correcto de cara a muchos
+La lección de las cinco juntas: **solo las mejoras que corrigen algo ESTRUCTURAL
+—la ventaja de local y el cruce real del cuadro— mueven el resultado**. Las que
+refinan la *precisión* de las probabilidades (odds, Dixon-Coles, estilo att/def)
+hacen el modelo más honesto y mejor calibrado —lo correcto de cara a muchos
 torneos— pero en **una sola edición** el techo lo pone la varianza, no la
-sofisticación del modelo. Mejor modelo ≠ mejor porra concreta; sí mejor apuesta
-media.
+sofisticación. Mejor modelo ≠ mejor porra concreta; sí mejor apuesta media.
 
 ## Comparativa de escenarios (actualizada)
 
+Todas CON veto de 9 M€, cada una acumulando sobre la anterior:
+
 | Escenario | Pts esperados | Pts reales | % del techo |
 |---|---:|---:|---:|
-| Elo reales, SIN veto | 264.7 | 195 | 97 % |
-| **Elo + local, CON veto** *(Mejora 1)* | 207.7 | **151** | **75 %** |
-| Elo + odds + local, CON veto *(Mejora 2, w=0.5)* | 194.5 | 133 | 66 % |
-| Elo reales, CON veto | 200.4 | 105 | 52 % |
-| Elo a ojo, CON veto | 180 | 141 | 70 % |
+| Elo a ojo | 180 | 141 | 70 % |
+| Elo reales | 200.4 | 105 | 52 % |
+| + local *(M1, estructural)* | 207.7 | **151** | **75 %** |
+| + odds *(M2)* | 194.5 | 133 | 66 % |
+| + Dixon-Coles *(M3)* | 179.9 | 133 | 66 % |
+| **+ cuadro real *(M4, estructural)*** | 182 | **154** | **77 %** |
+| + estilo att/def *(M5)* | 197.9 | 148 | 74 % |
 | Óptima a posteriori | — | 201 | 100 % |
 
-> Nota: el % del techo *realizado* es ruidoso entre modelos (66-75 %) porque el
-> resultado de una sola edición está dominado por varianza. La ventaja de local
-> (Mejora 1) es la única mejora que sube de forma clara y sistemática (corrige un
-> sesgo real); las odds (Mejora 2) aportan señal pero no despuntan en esta foto.
+> Nota: los saltos claros llegan con las mejoras **estructurales** (local 52→75 %,
+> cuadro real 66→77 %); los refinamientos (odds, Dixon-Coles, estilo) se mueven
+> dentro del ruido de una sola edición, dominada por varianza.
 
 ## Predicción final del modelo completo, SIN restricción
 

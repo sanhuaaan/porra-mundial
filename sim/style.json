@@ -1,0 +1,197 @@
+{
+ "_comment": "Estilo ataque/defensa (Mejora 5), strength-neutral. atk = residuo z de log(GF/partido) ~ Elo (marca mas de lo que su fuerza predice); def = -residuo z de log(GA/partido) ~ Elo (encaja menos). Fuente GF/GA: eloratings.net 2025.tsv (todos los tiempos, proxy grueso de estilo; lo ideal seria un modelo att/def ajustado a resultados recientes). Aplicado en simulate.mjs con knob STYLE.",
+ "style": {
+  "México": {
+   "atk": 0.41,
+   "def": 0.694
+  },
+  "Sudáfrica": {
+   "atk": -0.564,
+   "def": 0.798
+  },
+  "Corea Sur": {
+   "atk": 0.659,
+   "def": 1.355
+  },
+  "Rep. Checa": {
+   "atk": 0.85,
+   "def": -0.287
+  },
+  "Suiza": {
+   "atk": -0.805,
+   "def": -1.923
+  },
+  "Canadá": {
+   "atk": -1.519,
+   "def": -0.48
+  },
+  "Bosnia": {
+   "atk": -0.444,
+   "def": -0.813
+  },
+  "Catar": {
+   "atk": -0.072,
+   "def": 0.09
+  },
+  "Brasil": {
+   "atk": 1.288,
+   "def": 1.412
+  },
+  "Marruecos": {
+   "atk": -0.586,
+   "def": 1.759
+  },
+  "Escocia": {
+   "atk": 0.302,
+   "def": -0.311
+  },
+  "Haití": {
+   "atk": 0.802,
+   "def": -0.689
+  },
+  "Estados Unidos": {
+   "atk": -0.386,
+   "def": -0.511
+  },
+  "Australia": {
+   "atk": 1.348,
+   "def": 0.201
+  },
+  "Paraguay": {
+   "atk": -1.645,
+   "def": -1.041
+  },
+  "Turquía": {
+   "atk": -1.088,
+   "def": -1.196
+  },
+  "Alemania": {
+   "atk": 1.7,
+   "def": -0.062
+  },
+  "Costa de Marfil": {
+   "atk": 0.316,
+   "def": 0.903
+  },
+  "Ecuador": {
+   "atk": -2.205,
+   "def": -1.436
+  },
+  "Curazao": {
+   "atk": 1.178,
+   "def": -1.335
+  },
+  "Países Bajos": {
+   "atk": 1.179,
+   "def": -0.492
+  },
+  "Japón": {
+   "atk": 0.46,
+   "def": -0.074
+  },
+  "Suecia": {
+   "atk": 1.48,
+   "def": -0.615
+  },
+  "Túnez": {
+   "atk": -0.462,
+   "def": 0.492
+  },
+  "Bélgica": {
+   "atk": 0.533,
+   "def": -1.546
+  },
+  "Egipto": {
+   "atk": 0.767,
+   "def": 0.693
+  },
+  "Irán": {
+   "atk": 0.987,
+   "def": 2.217
+  },
+  "Nueva Zelanda": {
+   "atk": 0.838,
+   "def": -1.149
+  },
+  "España": {
+   "atk": 0.539,
+   "def": 1.331
+  },
+  "Cabo Verde": {
+   "atk": -2.184,
+   "def": 0.457
+  },
+  "Uruguay": {
+   "atk": -0.425,
+   "def": -0.303
+  },
+  "Arabia Saudí": {
+   "atk": 0.019,
+   "def": 0.606
+  },
+  "Francia": {
+   "atk": 0.06,
+   "def": -0.894
+  },
+  "Noruega": {
+   "atk": -0.605,
+   "def": -1.834
+  },
+  "Senegal": {
+   "atk": -1.135,
+   "def": 1.116
+  },
+  "Irak": {
+   "atk": 0.231,
+   "def": 1.364
+  },
+  "Argentina": {
+   "atk": 0.229,
+   "def": 0.617
+  },
+  "Austria": {
+   "atk": 0.527,
+   "def": -1.457
+  },
+  "Argelia": {
+   "atk": -0.36,
+   "def": 0.752
+  },
+  "Jordania": {
+   "atk": -1.455,
+   "def": -0.16
+  },
+  "Colombia": {
+   "atk": -1.865,
+   "def": 0.084
+  },
+  "Portugal": {
+   "atk": 0.058,
+   "def": 0.158
+  },
+  "Congo": {
+   "atk": -0.133,
+   "def": 0.036
+  },
+  "Uzbekistán": {
+   "atk": 0.496,
+   "def": 0.418
+  },
+  "Inglaterra": {
+   "atk": 1.679,
+   "def": 0.982
+  },
+  "Croacia": {
+   "atk": 0.087,
+   "def": 0.807
+  },
+  "Ghana": {
+   "atk": 0.488,
+   "def": 0.718
+  },
+  "Panamá": {
+   "atk": -1.573,
+   "def": -1.453
+  }
+ }
+}
