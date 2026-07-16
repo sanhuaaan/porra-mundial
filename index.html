@@ -13,6 +13,10 @@
       --line: #ece7df;
       --accent: #b4451f;
       --num: #2b2723;
+      --gold: #bd8a1f;
+      --silver: #98918a;
+      --bronze: #a9713c;
+      --glow: rgba(180, 69, 31, 0.06);
     }
     * { box-sizing: border-box; }
     /* Reserva siempre el hueco de la barra de scroll: así, al desplegar un
@@ -105,6 +109,25 @@
     .notice { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 24px; color: var(--muted); }
     .warning { background: #fdf3e7; border: 1px solid #e8c9a0; color: #8a5a1f; border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; font-size: 14px; line-height: 1.45; }
     code { background: #f1ece4; padding: 1px 6px; border-radius: 5px; font-size: 0.9em; }
+
+    /* Banner de campeón: solo cuando el Mundial ha terminado (final jugada). */
+    .champ { position: relative; overflow: hidden; margin-bottom: 24px; text-align: center;
+      background: radial-gradient(120% 90% at 50% -20%, var(--glow), transparent 60%), var(--card);
+      border: 1px solid var(--line); border-radius: 14px; padding: 26px 22px 22px; }
+    .champ::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--gold) 55%, var(--accent)); }
+    .champ-eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.16em; color: var(--accent); font-weight: 700; }
+    .champ-trophy { font-size: 37px; line-height: 1; margin: 9px 0 5px; }
+    .champ-clabel { font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+    .champ-name { font-size: 37px; font-weight: 800; color: var(--accent); letter-spacing: -0.01em; margin: 1px 0; line-height: 1.05; }
+    .champ-pts { font-size: 13px; color: var(--num); font-weight: 600; font-variant-numeric: tabular-nums; }
+    .champ-podium { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px 22px;
+      margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 14px; }
+    .champ-podium span { white-space: nowrap; }
+    .champ-podium .p2 { color: var(--silver); }
+    .champ-podium .p3 { color: var(--bronze); }
+    .champ-podium b { color: var(--ink); font-weight: 600; }
+    .champ-podium .v { color: var(--muted); font-variant-numeric: tabular-nums; }
 
     /* Progreso del torneo: stepper horizontal (un punto por hito). */
     .progress { margin-bottom: 32px; }

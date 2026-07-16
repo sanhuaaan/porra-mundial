@@ -812,6 +812,29 @@ function teamsModal(data: Data, table: Map<string, TeamBreakdown>): string {
   );
 }
 
+// Banner de cierre: solo cuando la final ya se ha jugado. Corona al 1.º de la
+// clasificación y muestra el resto del podio (plata y bronce) debajo.
+function championBanner(data: Data, ranking: { p: Participant; pts: number }[]): string {
+  const final = data.matches.find((m) => m.phase === "final");
+  if (!final || final.status !== "FINISHED" || ranking.length === 0) return "";
+  const champ = ranking[0];
+  const medals = ["🥈", "🥉"];
+  const podium = ranking
+    .slice(1, 3)
+    .map((r, i) => `<span class="p${i + 2}">${medals[i]} <b>${r.p.name}</b> <span class="v">${fmt(r.pts)}</span></span>`)
+    .join("");
+  return (
+    '<section class="champ">' +
+    '<div class="champ-eyebrow">Mundial finalizado</div>' +
+    '<div class="champ-trophy">🏆</div>' +
+    '<div class="champ-clabel">Campeón de la porra</div>' +
+    `<div class="champ-name">${champ.p.name}</div>` +
+    `<div class="champ-pts">${fmt(champ.pts)} pts</div>` +
+    (podium ? `<div class="champ-podium">${podium}</div>` : "") +
+    "</section>"
+  );
+}
+
 function render(): void {
   const app = document.getElementById("app");
   if (!app) return;
@@ -832,7 +855,7 @@ function render(): void {
     .map((p) => ({ p, pts: participantPoints(p, table) }))
     .sort((a, b) => b.pts - a.pts);
 
-  let html = "";
+  let html = championBanner(data, ranking);
 
   // Banner si hay etapas de eliminatoria que la app no reconoce: esos partidos
   // todavía no puntúan (hay que añadir su etiqueta a PHASES en update.mjs).
