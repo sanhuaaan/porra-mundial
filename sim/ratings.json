@@ -1,17 +1,17 @@
 {
-  "_comment": "Fuerza pre-torneo por seleccion (estilo Elo). APROXIMADOS y a ojo por tramo de coste — NO son ratings reales. Sirven para ver la ESTRUCTURA de la cartera optima esperada, no para clavar puntuaciones. Para afinar: sustituir estos numeros por Elo reales (p.ej. eloratings.net) o por probabilidades implicitas de casas de apuestas convertidas a un rating. Los nombres deben coincidir EXACTAMENTE con los del motor (data.groups).",
+  "_comment": "Fuerza pre-torneo por seleccion (Elo). Fuente: eloratings.net, snapshot 2025.tsv = ratings a cierre de 2025 (~6 meses ANTES del Mundial de junio 2026), sin contaminar por resultados del propio torneo. El fichero anual 2026.tsv coincide con el World.tsv actual (ya incluye el Mundial en curso), por eso NO se usa. Codigos eloratings mapeados a los nombres del motor con cuidado de las trampas (Scotland=SQ, South Korea=KR, Switzerland=CH, Sweden=SE, Australia=AU/Austria=AT, Saudi=SA/SouthAfrica=ZA). AMBIGUO: 'Congo' se mapea a DR Congo (CD=1657), el que clasifico en la realidad; si fuese Rep. del Congo (CG) seria 1207. Para actualizar: descargar https://www.eloratings.net/<anio>.tsv (col 3=codigo, col 4=Elo) y remapear.",
   "elo": {
-    "México": 1880, "Sudáfrica": 1600, "Corea Sur": 1720, "Rep. Checa": 1780,
-    "Suiza": 1860, "Canadá": 1800, "Bosnia": 1720, "Catar": 1600,
-    "Brasil": 2020, "Marruecos": 1860, "Escocia": 1760, "Haití": 1450,
-    "Estados Unidos": 1830, "Australia": 1720, "Paraguay": 1760, "Turquía": 1820,
-    "Alemania": 1960, "Costa de Marfil": 1770, "Ecuador": 1800, "Curazao": 1480,
-    "Países Bajos": 1990, "Japón": 1840, "Suecia": 1800, "Túnez": 1690,
-    "Bélgica": 1930, "Egipto": 1760, "Irán": 1740, "Nueva Zelanda": 1560,
-    "España": 2050, "Cabo Verde": 1520, "Uruguay": 1880, "Arabia Saudí": 1620,
-    "Francia": 2080, "Noruega": 1870, "Senegal": 1830, "Irak": 1500,
-    "Argentina": 2100, "Austria": 1810, "Argelia": 1770, "Jordania": 1520,
-    "Colombia": 1910, "Portugal": 2000, "Congo": 1650, "Uzbekistán": 1580,
-    "Inglaterra": 1980, "Croacia": 1900, "Ghana": 1730, "Panamá": 1600
+    "México": 1834, "Sudáfrica": 1551, "Corea Sur": 1784, "Rep. Checa": 1731,
+    "Suiza": 1897, "Canadá": 1802, "Bosnia": 1572, "Catar": 1425,
+    "Brasil": 1978, "Marruecos": 1840, "Escocia": 1790, "Haití": 1542,
+    "Estados Unidos": 1747, "Australia": 1773, "Paraguay": 1833, "Turquía": 1881,
+    "Alemania": 1910, "Costa de Marfil": 1627, "Ecuador": 1933, "Curazao": 1466,
+    "Países Bajos": 1959, "Japón": 1878, "Suecia": 1660, "Túnez": 1615,
+    "Bélgica": 1850, "Egipto": 1623, "Irán": 1755, "Nueva Zelanda": 1585,
+    "España": 2172, "Cabo Verde": 1561, "Uruguay": 1890, "Arabia Saudí": 1592,
+    "Francia": 2062, "Noruega": 1922, "Senegal": 1807, "Irak": 1582,
+    "Argentina": 2113, "Austria": 1818, "Argelia": 1757, "Jordania": 1689,
+    "Colombia": 1998, "Portugal": 1976, "Congo": 1657, "Uzbekistán": 1735,
+    "Inglaterra": 2042, "Croacia": 1933, "Ghana": 1509, "Panamá": 1742
   }
 }

@@ -200,7 +200,7 @@ for (let k = 7; k <= MAXN; k++)
 
 // ── Salida ─────────────────────────────────────────────────────────────────
 const fmt = (x) => round1(x).toString().padStart(6);
-console.log(`\nMonte Carlo pre-torneo · ${N.toLocaleString("es")} simulaciones · ratings aproximados\n`);
+console.log(`\nMonte Carlo pre-torneo · ${N.toLocaleString("es")} simulaciones · Elo eloratings.net (cierre 2025)\n`);
 console.log("CARTERA ÓPTIMA ESPERADA (36 M€, ≥7 sels, sin 9 M€)");
 console.log(`  puntos esperados: ${round1(best.s)}  ·  coste: ${best.w} M€  ·  ${best.n} selecciones\n`);
 best.pick

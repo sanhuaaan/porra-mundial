@@ -79,66 +79,122 @@ knapsack (36 M€, ≥7 selecciones, sin 9 M€).
   sobre N sorteos la dificultad esperada sale insesgada).
 - **PRNG sembrado** → resultado reproducible corrida a corrida.
 
-## Cambiar los ratings (pendiente de investigar)
+## Los ratings: de dónde salen y cómo cambiarlos
 
-La fuerza sale de **`sim/ratings.json`** — hoy son **Elo APROXIMADOS a ojo** por
-tramo de coste, no reales. Para afinar el modelo **no se toca el script**: se
-edita ese JSON. Fuentes a investigar más adelante para rellenarlo con datos de
-verdad:
+La fuerza sale de **`sim/ratings.json`**. Para afinar el modelo **no se toca el
+script**: se edita ese JSON.
 
-- **Elo de fútbol** (eloratings.net u similar): ratings por selección, gratis.
+**Fuente actual: Elo de eloratings.net, snapshot `2025.tsv` (cierre de 2025).**
+Es una foto ~6 meses ANTES del Mundial, **sin contaminar** por resultados del
+propio torneo. Ojo: el fichero anual `2026.tsv` coincide con el `World.tsv`
+actual (ya incluye el Mundial en curso), por eso no se usa.
+
+Para actualizar o cambiar de fuente:
+
+- **eloratings.net:** descargar `https://www.eloratings.net/<año>.tsv` (columna 3
+  = código, columna 4 = Elo) y remapear a los 48 nombres del motor. Cuidado con
+  códigos no estándar: Scotland=`SQ`, South Korea=`KR`, Switzerland=`CH`,
+  Sweden=`SE`, Australia=`AU`/Austria=`AT`, Saudi=`SA`/South Africa=`ZA`. Y
+  «Congo» es ambiguo: aquí se usa DR Congo (`CD`=1657).
 - **Odds de casas de apuestas** pre-torneo (ganador + «pasa de grupos»),
   quitándoles el margen y convirtiéndolas a un rating equivalente. Incorporan más
-  información (lesiones, forma, sorteo) que el Elo puro.
+  información (lesiones, forma, sorteo) que el Elo puro, pero requieren invertir
+  probabilidad → rating.
 
 Mientras el JSON tenga los 48 nombres exactos del motor, el simulador no cambia.
 
-## Resultado con los Elo aproximados actuales
+## Resultado con Elo reales (eloratings.net, cierre 2025)
 
 Cartera óptima **esperada** (20.000 simulaciones):
 
 | Selección | Coste | Pts esperados |
 |---|---:|---:|
-| Brasil | 8 M | 53.5 |
-| Portugal | 8 M | 47.3 |
-| Bélgica | 7 M | 37.8 |
-| México | 6 M | 29.9 |
-| Irán | 3 M | 9.6 |
-| Corea Sur | 3 M | 8.0 |
-| Uzbekistán | 1 M | −6.0 |
-| **Total** | **36 M** | **180** |
-
-El modelo gasta el 7.º hueco obligatorio en una selección de 1 M€ con puntos
-esperados negativos: seis fuertes agotan casi el presupuesto (35 M€) y solo queda
-1 M€ para cumplir el mínimo de 7.
+| Brasil | 8 M | 41.3 |
+| Colombia | 7 M | 39.4 |
+| Suiza | 6 M | 36.3 |
+| Ecuador | 5 M | 36.0 |
+| Croacia | 6 M | 28.3 |
+| Corea Sur | 3 M | 17.4 |
+| Uzbekistán | 1 M | 1.7 |
+| **Total** | **36 M** | **200.4** |
 
 ## Contraste modelo vs realidad
 
-- Las **3 mejores del modelo son las de 9 M€** (Argentina 72.9, Francia 65.9,
-  España 60.7) — prohibidas. El precio ya era una predicción excelente.
-- Entre las permitidas el modelo acierta la **estructura**: cargar en Brasil,
-  Portugal, Bélgica, México. **Bélgica y México** están también en la cartera
-  óptima real.
-- Pero **sobrevalora** a Brasil (esperado 53.5 → real 35) y Portugal (47.3 → 29),
-  y **no puede anticipar** las sorpresas que ganaron la porra de verdad (Suiza 35,
-  Marruecos 32, Canadá 28): su esperanza estaba muy por debajo.
+- Las **4 mejores del modelo son de 9 M€** (España 88.8, Argentina 68.9, Francia
+  55, Inglaterra 52.9) — prohibidas. El precio ya era una predicción excelente.
+- Entre las permitidas, el modelo con Elo reales acierta a **Suiza** (esperado
+  36.3 → real 35, ¡clavada!), que está en la cartera óptima a posteriori.
+- Pero **sobrevalora** a Colombia (39.4 → real 23), Ecuador (36 → 10) y Croacia
+  (28.3 → 9), y **no anticipa** las sorpresas que ganaron la porra (Bélgica 43,
+  México 38, Marruecos 32): su esperanza estaba por debajo.
 
-**Prueba de fuego** — puntos REALES que habría sacado la cartera del modelo:
+**Prueba de fuego** — puntos REALES que habrían sacado las carteras del modelo:
 
-| | Puntos reales |
-|---|---:|
-| Cartera del modelo (pre-torneo) | **141** |
-| Cartera óptima a posteriori | 201 |
-| **Ratio** | **70 %** |
+| Modelo | Pts esperados | Pts reales | Ratio |
+|---|---:|---:|---:|
+| Elo reales (eloratings 2025) | 200.4 | **105** | 52 % |
+| Elo aproximados a ojo (versión previa) | 180 | 141 | 70 % |
+| Cartera óptima a posteriori | — | 201 | 100 % |
 
-Es decir: con obtención de datos habrías capturado **~70 % del techo** y acertado
-la mitad de los nombres. El 30 % restante es varianza pura (Bélgica 43, las
-sorpresas) que ningún modelo pre-torneo predice — eso lo pone el balón.
+**Lección clave (y contraintuitiva):** mejores inputs suben el **valor esperado**
+(180 → 200.4), que es la medida honesta de la calidad de la elección — pero
+**bajan** el resultado *realizado* en esta edición (141 → 105). No es un fallo del
+modelo: es la varianza de un único torneo. Los Elo reales apostaron por
+Colombia/Ecuador/Croacia (fuertes sobre el papel, flojos en la cancha), mientras
+que la versión a ojo tenía por casualidad a Bélgica y México, que petaron muy por
+encima de su fuerza. Sobre muchos torneos ganaría la cartera de mayor esperanza;
+en uno solo manda el balón. Ningún rating pre-torneo captura ese ~50 % de arriba.
+
+## Variante sin la restricción de 9 M€
+
+Quitando el veto a las cuatro más caras (España, Francia, Inglaterra, Argentina),
+con los Elo reales el óptimo esperado es **264.7 pts** con solo **dos** de 9 M€:
+
+| Selección | Coste | Pts esperados |
+|---|---:|---:|
+| España | 9 M | 88.8 |
+| Argentina | 9 M | 68.9 |
+| Suiza | 6 M | 36.3 |
+| Ecuador | 5 M | 36.0 |
+| Corea Sur | 3 M | 17.4 |
+| Irán | 3 M | 15.6 |
+| Uzbekistán | 1 M | 1.7 |
+| **Total** | **36 M** | **264.7** |
+
+No mete tres o cuatro caras: España es tan dominante (88.8) que, tras
+España+Argentina (18 M€), rellenar con valor barato rinde más por M€ que añadir
+Francia o Inglaterra.
+
+## Los cuatro escenarios (la moraleja del torneo)
+
+| Escenario | Pts esperados | Pts reales | % del techo |
+|---|---:|---:|---:|
+| **Elo reales, SIN veto** | 264.7 | **195** | **97 %** |
+| Elo reales, CON veto | 200.4 | 105 | 52 % |
+| Elo a ojo, CON veto | 180 | 141 | 70 % |
+| Óptima a posteriori | — | 201 | 100 % |
+
+- **Sin la restricción, la porra es casi trivial de optimizar:** un Elo decente
+  da el **97 %** del máximo. Compras a los dos súper-favoritos (España +
+  Argentina, la apuesta más predecible del cuadro — ambos llegaron a la final),
+  rellenas con valor barato y casi tocas el techo. El modelo apenas acierta nada
+  difícil.
+- **La restricción de las 4 caras es TODA la gracia del juego:** al quitártelas,
+  te empuja al tramo medio (6-8 M€) donde manda la varianza — sorpresas como
+  Bélgica, México o Marruecos que ningún Elo predice. Ahí el modelo cae al
+  52-70 %.
+- Por eso el veto no es un capricho: convierte una compra obvia («pilla a los
+  favoritos») en un ejercicio real de buscar valor infravalorado, que es donde de
+  verdad se gana o se pierde la porra.
 
 ## Uso
 
 ```bash
 node sim/simulate.mjs [N]   # N simulaciones, por defecto 20000
+
+# Variante sin el veto de 9 M€ (copia temporal, quita el filtro):
+sed 's/\.filter((t) => COST\[t\] !== 9)//' sim/simulate.mjs > sim/_no9.mjs \
+  && node sim/_no9.mjs 20000; rm sim/_no9.mjs
 ```
 
 No se despliega en la web (el deploy solo sirve `index.html` + `data.js` + `dist/*.js`).
