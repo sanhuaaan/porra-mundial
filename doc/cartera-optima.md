@@ -387,6 +387,44 @@ Es el remate de toda la moraleja: **quitado el veto, el favorito es rey y un bue
 modelo lo ve venir.** El juego solo se vuelve impredecible cuando la restricción de
 las 4 caras te empuja al tramo medio, donde manda la varianza.
 
+---
+
+# Optimización avanzada #1 — la distribución, no la media
+
+`sim/optimize.mjs` (con `sim/model.mjs`, el modelo ya refactorizado como módulo
+reutilizable). El knapsack de `simulate.mjs` maximiza puntos **esperados** = suma
+de medias marginales, y por linealidad de la esperanza **ignora toda correlación**
+entre las selecciones propias. Pero en una sola porra manda la varianza. Aquí se
+guarda la matriz equipo×simulación y se optimiza el subconjunto (recocido simulado,
+objetivo no separable → sin DP) para métricas de riesgo que **sí** usan la
+correlación (dos equipos del mismo grupo o que se cruzan pronto están
+negativamente correlados → menos varianza):
+
+| Objetivo | Cartera | media | mediana | p25 | σ | REAL |
+|---|---|---:|---:|---:|---:|---:|
+| media | Bra·Por·Méx·Can·Cor·Aus·Irán | 197.6 | 196 | 169 | 40.3 | 148 |
+| mediana | *(idéntica)* | 197.6 | 196 | 169 | 40.3 | 148 |
+| percentil-25 | Bra·**Ale**·Méx·Can·Cor·Aus·Irán | 197.0 | 195 | 170 | 39.0 | 140 |
+| media−σ | *(idéntica a p25)* | 197.0 | 195 | 170 | 39.0 | 140 |
+| **σ-mínima (ref)** | Gha·Tún·ArSaudí·Pan·Hai·CV·Cur | **−28.4** | −29 | −37 | **12.5** | −13 |
+
+**El hallazgo:** optimizar el suelo/varianza en vez de la media **apenas cambia
+nada** en el extremo competitivo — un swap (Portugal→Alemania), σ de 40.3 → 39.0,
+suelo +2 pts. La referencia de σ-mínima muestra por qué: la varianza *sí* es
+reducible (baja hasta 12.5), pero **solo tirando la media a −28** (7 equipos flojos
+que fiablemente no puntúan). La frontera media-varianza es escarpada: donde quieres
+estar (media alta) la varianza es **sistemática** —la lotería de «¿llega mi equipo
+a la final?»— y **no es diversificable**.
+
+Esto **cierra definitivamente** la pregunta de "no elegir 4 del mismo grupo /
+repartir por el cuadro": el margen de cobertura existe, pero es **insignificante**
+para una cartera competitiva. Ni la herramienta teóricamente correcta bate a la
+varianza; solo confirma, una vez más, que en una sola porra el balón manda.
+
+```bash
+node sim/optimize.mjs [N]   # optimiza media / mediana / p25 / media−σ
+```
+
 ## Uso
 
 ```bash
