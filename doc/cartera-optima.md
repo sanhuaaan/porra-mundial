@@ -219,11 +219,39 @@ Puntos **reales** de esta cartera: **151** (75 % del techo de 201), frente a los
 105 (52 %) sin el boost. El sesgo de local era sistemático y corregible — justo el
 tipo de error que un modelo sí puede arreglar (a diferencia de las sorpresas puras).
 
-## Mejora 2 — Fuerza desde odds de casas *(pendiente)*
+## Mejora 2 — Fuerza desde odds de casas *(implementada)*
 
-Blend Elo + probabilidades implícitas de casas de apuestas (ganador + «pasa de
-grupos»), sin margen. Capturan lesiones, forma y repescas que el Elo de cierre
-2025 ignora.
+Blend del Elo con las **cuotas outright** «ganar el Mundial». Fuente:
+`sim/odds.json` — BetMGM (vía soccergraph.com), publicadas en **abril 2026**, campo
+completo de 48, pre-torneo. Confirman de paso que «Congo» = **DR Congo**.
+
+Mecanismo (en `sim/simulate.mjs`, knob `BLEND_W`):
+1. cuota americana → probabilidad implícita (`+X → 100/(X+100)`);
+2. quitar el margen normalizando a suma 1;
+3. fuerza de mercado = `ln(prob)` (≈ lineal en Elo: el campeón encadena ~7
+   victorias, así que `log(prob campeón)` ≈ suma de log-probs ∝ fuerza);
+4. estandarizar Elo y mercado a z-scores y mezclar con peso `BLEND_W`
+   (1 = solo Elo, 0 = solo mercado), devolviendo a escala Elo. `ratings.json` y
+   `odds.json` quedan crudos; la mezcla vive en el código.
+
+**Barrido del knob** (puntos reales, con local y veto de 9 M€):
+
+| `BLEND_W` | Mezcla | Pts reales | % techo |
+|---|---|---:|---:|
+| 0 | solo mercado | 147 | 73 % |
+| 0.25 | | 147 | 73 % |
+| 0.5 | mitad y mitad | 133 | 66 % |
+| 0.75 | | 151 | 75 % |
+| 1 | solo Elo | 151 | 75 % |
+
+**Resultado honesto:** las odds **no mejoraron** este torneo. Todo el barrido cae
+en 66-75 %, dentro del ruido Monte Carlo. Mercado y Elo coinciden en los
+favoritos; donde discreparon (el mercado subía a Portugal/USA, el Elo a Suiza), el
+Elo acertó *esta vez*, y el 0.5 pilla lo peor de ambos (mete Portugal, que sacó
+29, y suelta Suiza, que sacó 35). Es una señal legítima que **ayudaría de media**
+—incorpora lesiones/forma/repescas que el Elo de cierre-2025 ignora— pero en una
+sola edición vuelve a mandar la varianza. Se deja implementada con `BLEND_W=0.5`;
+subirlo hacia 1 tira más del Elo.
 
 ## Mejora 3 — Modelo de partido calibrado *(pendiente)*
 
@@ -236,10 +264,16 @@ en vez de fijarlos a ojo.
 | Escenario | Pts esperados | Pts reales | % del techo |
 |---|---:|---:|---:|
 | Elo reales, SIN veto | 264.7 | 195 | 97 % |
-| **Elo reales + local, CON veto** | 207.7 | **151** | **75 %** |
+| **Elo + local, CON veto** *(Mejora 1)* | 207.7 | **151** | **75 %** |
+| Elo + odds + local, CON veto *(Mejora 2, w=0.5)* | 194.5 | 133 | 66 % |
 | Elo reales, CON veto | 200.4 | 105 | 52 % |
 | Elo a ojo, CON veto | 180 | 141 | 70 % |
 | Óptima a posteriori | — | 201 | 100 % |
+
+> Nota: el % del techo *realizado* es ruidoso entre modelos (66-75 %) porque el
+> resultado de una sola edición está dominado por varianza. La ventaja de local
+> (Mejora 1) es la única mejora que sube de forma clara y sistemática (corrige un
+> sesgo real); las odds (Mejora 2) aportan señal pero no despuntan en esta foto.
 
 ## Uso
 

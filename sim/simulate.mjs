@@ -37,6 +37,45 @@ const GROUPS = Object.fromEntries(
 );
 const { elo } = JSON.parse(readFileSync(join(dir, "ratings.json"), "utf8"));
 
+// ── Mejora 2: blend Elo + odds de casas ─────────────────────────────────────
+// El Elo de cierre-2025 ignora lesiones, forma y repescas; el mercado no. Se
+// mezcla la fuerza cruda (Elo) con la implícita en las cuotas outright.
+//   1) cuota americana -> prob. implícita (con margen).
+//   2) quitar margen normalizando a suma 1.
+//   3) fuerza de mercado = ln(prob) (≈ lineal en Elo: el campeón encadena ~7
+//      victorias, así que log(prob campeón) ~ suma de log-probs ~ ∝ fuerza).
+//   4) estandarizar Elo y fuerza-de-mercado a z-scores y mezclar con peso
+//      BLEND_W (1 = solo Elo, 0 = solo mercado), devolviendo a escala Elo para
+//      que el modelo de goles siga calibrado.
+// BLEND_W es un knob ajustable.
+const BLEND_W = 0.5;
+const { americanOdds } = JSON.parse(readFileSync(join(dir, "odds.json"), "utf8"));
+const rating = (() => {
+  const teams = Object.keys(elo);
+  const impRaw = Object.fromEntries(
+    teams.map((t) => {
+      const a = americanOdds[t];
+      const p = a == null ? 1e-6 : a > 0 ? 100 / (a + 100) : -a / (-a + 100);
+      return [t, p];
+    }),
+  );
+  const Z = Object.values(impRaw).reduce((s, x) => s + x, 0);
+  const mkt = teams.map((t) => Math.log(impRaw[t] / Z)); // log-prob sin margen
+  const eloArr = teams.map((t) => elo[t]);
+  const ms = (a) => {
+    const m = a.reduce((s, x) => s + x, 0) / a.length;
+    const sd = Math.sqrt(a.reduce((s, x) => s + (x - m) ** 2, 0) / a.length) || 1;
+    return [m, sd];
+  };
+  const [em, es] = ms(eloArr), [mm, msd] = ms(mkt);
+  const out = {};
+  teams.forEach((t, i) => {
+    const z = BLEND_W * (eloArr[i] - em) / es + (1 - BLEND_W) * (mkt[i] - mm) / msd;
+    out[t] = em + es * z; // de vuelta a escala Elo
+  });
+  return out;
+})();
+
 // Coste por selección (mismo tarifario de la porra).
 const COST = {
   España: 9, Francia: 9, Inglaterra: 9, Argentina: 9,
@@ -76,7 +115,7 @@ function poisson(lambda) {
 // local (0 = desactivado). Si dos anfitriones se cruzan, el boost se cancela.
 const HOSTS = new Set(["Estados Unidos", "Canadá", "México"]);
 const HOST_ELO = 100;
-const eff = (t) => (elo[t] ?? 1600) + (HOSTS.has(t) ? HOST_ELO : 0);
+const eff = (t) => (rating[t] ?? elo[t] ?? 1600) + (HOSTS.has(t) ? HOST_ELO : 0);
 
 // Medias de goles de cada equipo según la diferencia de Elo EFECTIVO. BASE ≈
 // goles medios de una selección por partido; el factor 10^(dif/800) inclina el
@@ -211,7 +250,7 @@ for (let k = 7; k <= MAXN; k++)
 
 // ── Salida ─────────────────────────────────────────────────────────────────
 const fmt = (x) => round1(x).toString().padStart(6);
-console.log(`\nMonte Carlo pre-torneo · ${N.toLocaleString("es")} simulaciones · Elo eloratings.net (cierre 2025) + local +${HOST_ELO} (${[...HOSTS].join(", ")})\n`);
+console.log(`\nMonte Carlo pre-torneo · ${N.toLocaleString("es")} simulaciones · blend Elo/odds w=${BLEND_W} + local +${HOST_ELO} (${[...HOSTS].join(", ")})\n`);
 console.log("CARTERA ÓPTIMA ESPERADA (36 M€, ≥7 sels, sin 9 M€)");
 console.log(`  puntos esperados: ${round1(best.s)}  ·  coste: ${best.w} M€  ·  ${best.n} selecciones\n`);
 best.pick

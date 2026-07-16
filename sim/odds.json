@@ -1,0 +1,17 @@
+{
+  "_comment": "Cuotas americanas 'ganar el Mundial 2026' (outright), campo completo de 48. Fuente: BetMGM via soccergraph.com, publicadas en abril 2026 = PRE-torneo, sin contaminar. Se convierten a probabilidad implicita (americana +X -> 100/(X+100)), se les quita el margen normalizando a suma 1, y el log de esa probabilidad se estandariza y se mezcla con el Elo estandarizado (knob BLEND_W en simulate.mjs). Confirma 'Congo' = DR Congo. Nombres mapeados a los del motor. Para actualizar: sustituir por otras cuotas outright (misma unidad americana) o remapear.",
+  "americanOdds": {
+    "Francia": 375, "España": 500, "Inglaterra": 550, "Argentina": 800,
+    "Portugal": 800, "Brasil": 900, "Alemania": 1200, "Países Bajos": 2000,
+    "Noruega": 2800, "Marruecos": 3300, "Estados Unidos": 3300, "Bélgica": 4000,
+    "Colombia": 4000, "Suiza": 4000, "Japón": 5000, "México": 6600,
+    "Uruguay": 6600, "Canadá": 8000, "Suecia": 8000, "Australia": 10000,
+    "Austria": 10000, "Croacia": 10000, "Ecuador": 10000, "Costa de Marfil": 10000,
+    "Senegal": 10000, "Turquía": 12500, "Escocia": 15000, "Egipto": 20000,
+    "Paraguay": 20000, "Corea Sur": 20000, "Rep. Checa": 30000, "Ghana": 30000,
+    "Congo": 30000, "Bosnia": 40000, "Argelia": 50000, "Irán": 50000,
+    "Nueva Zelanda": 50000, "Arabia Saudí": 75000, "Túnez": 75000, "Cabo Verde": 100000,
+    "Irak": 100000, "Jordania": 100000, "Panamá": 100000, "Catar": 100000,
+    "Sudáfrica": 100000, "Uzbekistán": 100000, "Curazao": 250000, "Haití": 250000
+  }
+}
