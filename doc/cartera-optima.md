@@ -514,6 +514,48 @@ señal menor que exige datos externos. Queda como hallazgo: en 2026 la geografí
 importa menos de lo que parece porque la FIFA reparte el descanso, y el resto (viaje)
 es de magnitud refinamiento.
 
+---
+
+# Idea B — métricas avanzadas de estilo (xG, presión, matchups) *(NO implementada)*
+
+La hipótesis (inspirada en los análisis pre-partido de redes: «la mejor defensa y
+la que antes recupera el balón vs el mejor ataque»): usar **métricas avanzadas**
+—xG a favor/en contra, PPDA/presión, posesión, tiempo de recuperación— para modelar
+mejor ataque/defensa e incluso **interacciones de estilo** (una defensa que
+neutraliza un ataque concreto).
+
+**Dos niveles:**
+1. **Mejor att/def** (xG en vez del GF/GA histórico) → es un refinamiento de la
+   **Mejora 5**, que ya dio realizado **nulo**. Misma categoría, mismo destino.
+2. **Interacciones de estilo** (presión vs build-up, posesión vs contra) → esto sí
+   es nuevo (ningún input actual captura interacciones). Pero sigue siendo
+   **precisión**: afina quién gana cada partido → puntos esperados más finos → se
+   los come la varianza de un solo torneo.
+
+**Por qué no movería una porra:**
+- Precisión, no estructura. Lo único que movió la aguja fue estructural (local,
+  cuadro); odds/DC/estilo, todos nulos. Esto es de esa segunda familia.
+- El único ángulo con potencial —**predecir upsets** (los 40+ puntos de una
+  eliminatoria sorpresa)— es justo donde estos modelos fallan: Opta y las casas
+  **tienen** estos datos y no clavan las sorpresas. Por eso son sorpresas.
+- Redundante con la fuerza: un buen equipo ya presiona bien y tiene buen xG; el
+  Elo/odds lo saben. La señal incremental es el residuo de estilo = la Mejora 5.
+
+**El problema de datos, doble:**
+- **Disponibilidad:** vienen de Opta/StatsBomb/SofaScore (de pago) o FBref (gratis);
+  hay xG para las grandes, pero **casi nada para las minnows** (Curazao, Haití,
+  Uzbekistán), que son media porra.
+- **Calidad (el killer):** las selecciones juegan ~10-15 partidos/año contra rivales
+  de nivel dispar; sus métricas avanzadas son **mucho más ruidosas** que las de club
+  (50+ partidos, nivel homogéneo). Sin ajustar por rival, meterías **más ruido que
+  señal** que el Elo/GF-GA simple actual.
+
+**Decisión:** no se implementa. Es la categoría «precisión» ya probada inerte, con
+datos escasos y ruidosos para selecciones. Versión honesta y barata si algún día se
+quisiera: recalcular `style.json` con xG de FBref para las ~25 selecciones con datos
+y dejar las minnows con el proxy actual — pero saldría **nulo en realizado, como la
+M5**; solo mejoraría la honestidad del modelo, no ganar *esta* porra.
+
 ## Uso
 
 ```bash
