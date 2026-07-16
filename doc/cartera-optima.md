@@ -320,6 +320,37 @@ media.
 > (Mejora 1) es la única mejora que sube de forma clara y sistemática (corrige un
 > sesgo real); las odds (Mejora 2) aportan señal pero no despuntan en esta foto.
 
+## Predicción final del modelo completo, SIN restricción
+
+Con las tres mejoras activas (blend Elo/odds `w=0.5` + local + Dixon-Coles
+calibrado) y **sin el veto de 9 M€**, la cartera pre-torneo predicha es:
+
+| Selección | Coste | Pts esperados | Pts reales |
+|---|---:|---:|---:|
+| España | 9 M | 66.0 | 76 |
+| Argentina | 9 M | 55.3 | 78 |
+| México | 6 M | 34.4 | 38 |
+| Canadá | 5 M | 30.3 | 28 |
+| Corea Sur | 3 M | 12.4 | 2 |
+| Irán | 3 M | 9.3 | 3 |
+| Uzbekistán | 1 M | −0.8 | −9 |
+| **Total** | **36 M** | **206.8** | **216** |
+
+Techo real **sin restricción** (`≥7`, `≤36 M€`, a posteriori): **254**
+(Argentina 78, España 76, Francia 65, Canadá 28 + rellenos). El modelo captura
+**216 = 85 %** del techo.
+
+**Por qué acierta tanto aquí (85 %) y tan poco con el veto (66-75 %):** sin el
+veto, el modelo compra lo **predecible** —España y Argentina, las dos apuestas más
+seguras del cuadro, ambas llegaron a la final (76 y 78)— y la ventaja de local le
+suma México (38) y Canadá (28). Cuatro aciertos gordos de siete. Lo único que dejó
+de ganar frente al óptimo fue no meter una **tercera** de 9 M€ (Francia, 65): optó
+por México + rellenos por valor esperado, y México (38) casi lo compensó.
+
+Es el remate de toda la moraleja: **quitado el veto, el favorito es rey y un buen
+modelo lo ve venir.** El juego solo se vuelve impredecible cuando la restricción de
+las 4 caras te empuja al tramo medio, donde manda la varianza.
+
 ## Uso
 
 ```bash
