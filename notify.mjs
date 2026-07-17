@@ -80,8 +80,10 @@ if (firstRun) {
 }
 
 // Fases terminadas que aún no se han anunciado, en el orden de phaseProgress.
-const pending = donePhases.filter((full) => !state.announced.includes(full));
-if (pending.length === 0) {
+// La Final NO usa la card normal de fase: la anuncia la card especial de cierre.
+const pending = donePhases.filter((full) => full !== "Final" && !state.announced.includes(full));
+const needClosing = donePhases.includes("Final") && !state.announced.includes("Final");
+if (pending.length === 0 && !needClosing) {
   console.log("• Sin fases nuevas que anunciar.");
   process.exit(0);
 }
@@ -156,6 +158,29 @@ function card(phaseFull, quote) {
   };
 }
 
+// ── Card especial de cierre del Mundial ──
+// SUSTITUYE a la card normal de fase cuando termina la Final: campeón en la
+// cabecera y clasificación final completa en el cuerpo (empatados comparten
+// marca, igual que en la card de fase).
+function closingCard() {
+  const champs = ranking.filter((_, i) => rankOf(i) === 1);
+  const title = `🏆 ${champs.length > 1 ? "Campeones" : "Campeón"} de la porra: ${champs.map((r) => r.name).join(" y ")}`;
+  const widgets = [
+    ...ranking.map((row, i) => ({
+      decoratedText: { text: `${rankMark(i)}  <b>${row.name}</b>  ·  ${round1(row.pts)} pts` },
+    })),
+    // Despedida al estilo García: su «juez insobornable» + su cierre clásico.
+    { textParagraph: { text: "<br><i>«El tiempo es ese juez insobornable que da y quita razones. Muy buenas noches y saludos cordiales.»</i><br>— José María García" } },
+    { buttonList: { buttons: [{ text: "Ver clasificación final", onClick: { openLink: { url: WEB_URL } } }] } },
+  ];
+  return {
+    cardsV2: [{
+      cardId: "porra-cierre",
+      card: { header: { title, subtitle: "Mundial 2026 · Clasificación final" }, sections: [{ widgets }] },
+    }],
+  };
+}
+
 async function post(payload) {
   const r = await fetch(WEBHOOK, {
     method: "POST",
@@ -191,6 +216,33 @@ for (const phaseFull of pending) {
   }
   state.announced.push(phaseFull);
   posted++;
+}
+
+// ── Cierre del Mundial: la card especial que anuncia la Final ──
+if (needClosing) {
+  const payload = closingCard();
+  let ok = true;
+  if (DRY_RUN) {
+    const c = payload.cardsV2[0].card;
+    console.log("\n── Cierre del Mundial ──");
+    console.log(`${c.header.title}\n${c.header.subtitle}`);
+    for (const w of c.sections[0].widgets) {
+      const t = (w.decoratedText && w.decoratedText.text) || (w.textParagraph && w.textParagraph.text);
+      if (t) console.log("  " + t.replace(/<[^>]+>/g, ""));
+    }
+    console.log("  [Ver clasificación final] " + WEB_URL);
+  } else {
+    try {
+      await post(payload);
+    } catch (e) {
+      ok = false;
+      console.warn("⚠  No se pudo anunciar el cierre:", e.message);
+    }
+  }
+  if (ok) {
+    state.announced.push("Final");
+    posted++;
+  }
 }
 
 // Una sola actualización de la base de ▲/▼, tras anunciar lo que se haya podido.
